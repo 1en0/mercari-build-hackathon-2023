@@ -26,6 +26,7 @@ export const Listing: React.FC = () => {
     image: "",
   };
   const [values, setValues] = useState<formDataType>(initialState);
+  const [file, setFile] = useState<string>(`${process.env.PUBLIC_URL}/default.jpg`);
   const [categories, setCategories] = useState<Category[]>([]);
   const [cookies] = useCookies(["token", "userID"]);
 
@@ -48,6 +49,10 @@ export const Listing: React.FC = () => {
       ...values,
       [event.target.name]: event.target.files![0],
     });
+		if(event.target.files![0])
+			setFile(URL.createObjectURL(event.target.files![0]))
+		else
+			setFile(`${process.env.PUBLIC_URL}/default.jpg`)
   };
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -119,6 +124,7 @@ export const Listing: React.FC = () => {
       <div className="Listing">
         <form onSubmit={onSubmit} className="ListingForm">
           <div>
+						<img src={file} alt="No file selected" height={120} width={120}/>
             <input
               type="text"
               name="name"
