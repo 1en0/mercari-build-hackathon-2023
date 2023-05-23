@@ -15,7 +15,14 @@ const wrap = <T>(task: Promise<Response>): Promise<T> => {
               reject(error);
             });
         } else {
-          reject(response);
+					response
+            .json()
+            .then((json) => {
+              reject(json);
+            })
+            .catch((error) => {
+              reject(error);
+            });
         }
       })
       .catch((error) => {
