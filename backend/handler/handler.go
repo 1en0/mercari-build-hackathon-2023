@@ -10,10 +10,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/labstack/echo/v4"
 	"github.com/1en0/mecari-build-hackathon-2023/backend/db"
 	"github.com/1en0/mecari-build-hackathon-2023/backend/domain"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -141,17 +141,17 @@ func (h *Handler) Register(c echo.Context) error {
 	// http.StatusBadRequest(400)
 	req := new(registerRequest)
 	if err := c.Bind(req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err)
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	userID, err := h.UserRepo.AddUser(c.Request().Context(), domain.User{Name: req.Name, Password: string(hash)})
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	return c.JSON(http.StatusOK, registerResponse{ID: userID, Name: req.Name})
@@ -163,19 +163,20 @@ func (h *Handler) Login(c echo.Context) error {
 	// http.StatusBadRequest(400)
 	req := new(loginRequest)
 	if err := c.Bind(req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err)
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	user, err := h.UserRepo.GetUser(ctx, req.UserID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		//return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "User Does Not Exist.")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
 		if err == bcrypt.ErrMismatchedHashAndPassword {
-			return echo.NewHTTPError(http.StatusUnauthorized, err)
+			return echo.NewHTTPError(http.StatusUnauthorized, "Wrong UserId Or Password.")
 		}
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	// Set custom claims
@@ -190,7 +191,7 @@ func (h *Handler) Login(c echo.Context) error {
 	// Generate encoded token and send it as response.
 	encodedToken, err := token.SignedString([]byte(GetSecret()))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	return c.JSON(http.StatusOK, loginResponse{
