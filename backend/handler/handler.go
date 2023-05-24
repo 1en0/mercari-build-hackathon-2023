@@ -137,13 +137,14 @@ func (h *Handler) AccessLog(c echo.Context) error {
 }
 
 func (h *Handler) Register(c echo.Context) error {
-	// TODO: validation
-	// http.StatusBadRequest(400)
 	req := new(registerRequest)
 	if err := c.Bind(req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-
+	// validation
+	if len(req.Name) == 0 || len(req.Password) == 0 {
+		return echo.NewHTTPError(http.StatusBadRequest, "Username and password cannot be empty.")
+	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -159,13 +160,14 @@ func (h *Handler) Register(c echo.Context) error {
 
 func (h *Handler) Login(c echo.Context) error {
 	ctx := c.Request().Context()
-	// TODO: validation
-	// http.StatusBadRequest(400)
 	req := new(loginRequest)
 	if err := c.Bind(req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-
+	// validation
+	if req.UserID == 0 || len(req.Password) == 0 {
+		return echo.NewHTTPError(http.StatusBadRequest, "UserID and password cannot be empty.")
+	}
 	user, err := h.UserRepo.GetUser(ctx, req.UserID)
 	if err != nil {
 		//return echo.NewHTTPError(http.StatusInternalServerError, err)
