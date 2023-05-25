@@ -59,7 +59,8 @@ export const UserProfile: React.FC = () => {
     fetchUserBalance();
   }, []);
 
-  const onBalanceSubmit = () => {
+  const onBalanceSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+	  event.preventDefault();
     fetcher(`/balance`, {
       method: "POST",
       headers: {
@@ -82,7 +83,7 @@ export const UserProfile: React.FC = () => {
     <MerComponent>
       <div className="UserProfile">
         <div>
-          <div>
+          <form onSubmit={onBalanceSubmit}>
             <h2>
               <span>Balance: {balance}</span>
             </h2>
@@ -95,11 +96,12 @@ export const UserProfile: React.FC = () => {
                 setAddedBalance(Number(e.target.value));
               }}
               required
+							min={1}
             />
-            <button onClick={onBalanceSubmit} id="MerButton">
+            <button type="submit" id="MerButton">
               Add balance
             </button>
-          </div>
+          </form>
 
           <div>
             <h2>Item List</h2>

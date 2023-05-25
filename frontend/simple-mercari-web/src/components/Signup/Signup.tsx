@@ -11,7 +11,8 @@ export const Signup = () => {
   const [_, setCookie] = useCookies(["userID"]);
 
   const navigate = useNavigate();
-  const onSubmit = (_: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+	  event.preventDefault();
     fetcher<{ id: number; name: string }>(`/register`, {
       method: "POST",
       headers: {
@@ -38,7 +39,7 @@ export const Signup = () => {
 
   return (
     <div>
-      <div className="Signup">
+		 <form onSubmit={onSubmit} className="Signup">
         <label id="MerInputLabel">User Name</label>
         <input
           type="text"
@@ -59,14 +60,16 @@ export const Signup = () => {
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             setPassword(e.target.value);
           }}
+          required
+					minLength={8}
         />
-        <button onClick={onSubmit} id="MerButton">
+        <button type="submit" id="MerButton">
           Signup
         </button>
         {userID ? (
           <p>Use "{userID}" as UserID for login</p>
         ) : null}
-      </div>
+			</form>
     </div>
   );
 };
