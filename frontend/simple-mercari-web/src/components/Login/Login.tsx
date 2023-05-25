@@ -11,7 +11,8 @@ export const Login = () => {
 
   const navigate = useNavigate();
 
-  const onSubmit = (_: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+	  event.preventDefault();
     fetcher<{ id: number; name: string; token: string }>(`/login`, {
       method: "POST",
       headers: {
@@ -38,7 +39,7 @@ export const Login = () => {
 
   return (
     <div>
-      <div className="Login">
+      <form onSubmit={onSubmit} className="Login">
         <label id="MerInputLabel">User ID</label>
         <input
           type="number"
@@ -49,6 +50,7 @@ export const Login = () => {
             setUserID(Number(e.target.value));
           }}
           required
+					min={0}
         />
         <label id="MerInputLabel">Password</label>
         <input
@@ -59,11 +61,13 @@ export const Login = () => {
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             setPassword(e.target.value);
           }}
+          required
+					minLength={8}
         />
-        <button onClick={onSubmit} id="MerButton">
+        <button type="submit" id="MerButton">
           Login
         </button>
-      </div>
+      </form>
     </div>
   );
 };
