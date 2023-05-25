@@ -484,11 +484,14 @@ func (h *Handler) Purchase(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "ItemID out of range")
 	}
 
+	// balance consistency
+	tx, err := h.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
+	defer tx.Rollback()
 
-	item, err := h.ItemRepo.GetItem(ctx, int32(itemID))
+	item, err := h.ItemRepo.GetItemTx(tx, ctx, int32(itemID))
 	if err != nil {
 		//not found handling
 		if err == sql.ErrNoRows {
@@ -507,7 +510,7 @@ func (h *Handler) Purchase(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusPreconditionFailed, "Cannot buy your own item.")
 	}
 
-	user, err := h.UserRepo.GetUser(ctx, userID)
+	user, err := h.UserRepo.GetUserTx(tx, ctx, userID)
 	if err != nil {
 		//not found handling
 		if err == sql.ErrNoRows {
@@ -522,19 +525,17 @@ func (h *Handler) Purchase(c echo.Context) error {
 	}
 
 	// オーバーフローしていると。ここのint32(itemID)がバグって正常に処理ができないはず
-	if err := h.ItemRepo.UpdateItemStatus(ctx, int32(itemID), domain.ItemStatusSoldOut); err != nil {
+	if err := h.ItemRepo.UpdateItemStatusTx(tx, ctx, int32(itemID), domain.ItemStatusSoldOut); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	// TODO: if it is fail here, item status is still sold
-	// TODO: balance consistency
-	if err := h.UserRepo.UpdateBalance(ctx, userID, user.Balance-item.Price); err != nil {
+	if err := h.UserRepo.UpdateBalanceTx(tx, ctx, userID, user.Balance-item.Price); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	sellerID := item.UserID
 
-	seller, err := h.UserRepo.GetUser(ctx, sellerID)
+	seller, err := h.UserRepo.GetUserTx(tx, ctx, sellerID)
 
 	if err != nil {
 		//not found handling
@@ -544,7 +545,12 @@ func (h *Handler) Purchase(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	if err := h.UserRepo.UpdateBalance(ctx, sellerID, seller.Balance+item.Price); err != nil {
+	if err := h.UserRepo.UpdateBalanceTx(tx, ctx, sellerID, seller.Balance+item.Price); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 

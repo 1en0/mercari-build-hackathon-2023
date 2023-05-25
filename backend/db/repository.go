@@ -10,7 +10,9 @@ import (
 type UserRepository interface {
 	AddUser(ctx context.Context, user domain.User) (int64, error)
 	GetUser(ctx context.Context, id int64) (domain.User, error)
+	GetUserTx(tx *sql.Tx, ctx context.Context, id int64) (domain.User, error)
 	UpdateBalance(ctx context.Context, id int64, balance int64) error
+	UpdateBalanceTx(tx *sql.Tx, ctx context.Context, id int64, balance int64) error
 }
 
 type UserDBRepository struct {
@@ -40,8 +42,22 @@ func (r *UserDBRepository) GetUser(ctx context.Context, id int64) (domain.User, 
 	return user, row.Scan(&user.ID, &user.Name, &user.Password, &user.Balance)
 }
 
+func (r *UserDBRepository) GetUserTx(tx *sql.Tx, ctx context.Context, id int64) (domain.User, error) {
+	row := tx.QueryRowContext(ctx, "SELECT * FROM users WHERE id = ?", id)
+
+	var user domain.User
+	return user, row.Scan(&user.ID, &user.Name, &user.Password, &user.Balance)
+}
+
 func (r *UserDBRepository) UpdateBalance(ctx context.Context, id int64, balance int64) error {
 	if _, err := r.ExecContext(ctx, "UPDATE users SET balance = ? WHERE id = ?", balance, id); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *UserDBRepository) UpdateBalanceTx(tx *sql.Tx, ctx context.Context, id int64, balance int64) error {
+	if _, err := tx.ExecContext(ctx, "UPDATE users SET balance = ? WHERE id = ?", balance, id); err != nil {
 		return err
 	}
 	return nil
@@ -50,12 +66,14 @@ func (r *UserDBRepository) UpdateBalance(ctx context.Context, id int64, balance 
 type ItemRepository interface {
 	AddItem(ctx context.Context, item domain.Item) (domain.Item, error)
 	GetItem(ctx context.Context, id int32) (domain.Item, error)
+	GetItemTx(tx *sql.Tx, ctx context.Context, id int32) (domain.Item, error)
 	GetItemImage(ctx context.Context, id int32) ([]byte, error)
 	GetOnSaleItems(ctx context.Context) ([]domain.Item, error)
 	GetItemsByUserID(ctx context.Context, userID int64) ([]domain.Item, error)
 	GetCategory(ctx context.Context, id int64) (domain.Category, error)
 	GetCategories(ctx context.Context) ([]domain.Category, error)
 	UpdateItemStatus(ctx context.Context, id int32, status domain.ItemStatus) error
+	UpdateItemStatusTx(tx *sql.Tx, ctx context.Context, id int32, status domain.ItemStatus) error
 }
 
 type ItemDBRepository struct {
@@ -83,6 +101,14 @@ func (r *ItemDBRepository) GetItem(ctx context.Context, id int32) (domain.Item, 
 
 	var item domain.Item
 	return item, row.Scan(&item.ID, &item.Name, &item.Price, &item.Description, &item.CategoryID, &item.UserID, &item.Image, &item.Status, &item.CreatedAt, &item.UpdatedAt)
+}
+
+func (r *ItemDBRepository) GetItemTx(tx *sql.Tx, ctx context.Context, id int32) (domain.Item, error) {
+	row := tx.QueryRowContext(ctx, "SELECT * FROM items WHERE id = ?", id)
+
+	var item domain.Item
+	return item, row.Scan(&item.ID, &item.Name, &item.Price, &item.Description, &item.CategoryID, &item.UserID, &item.Image, &item.Status, &item.CreatedAt, &item.UpdatedAt)
+
 }
 
 func (r *ItemDBRepository) GetItemImage(ctx context.Context, id int32) ([]byte, error) {
@@ -135,6 +161,13 @@ func (r *ItemDBRepository) GetItemsByUserID(ctx context.Context, userID int64) (
 
 func (r *ItemDBRepository) UpdateItemStatus(ctx context.Context, id int32, status domain.ItemStatus) error {
 	if _, err := r.ExecContext(ctx, "UPDATE items SET status = ? WHERE id = ?", status, id); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *ItemDBRepository) UpdateItemStatusTx(tx *sql.Tx, ctx context.Context, id int32, status domain.ItemStatus) error {
+	if _, err := tx.ExecContext(ctx, "UPDATE items SET status = ? WHERE id = ?", status, id); err != nil {
 		return err
 	}
 	return nil
