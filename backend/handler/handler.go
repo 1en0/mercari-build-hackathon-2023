@@ -493,9 +493,14 @@ func (h *Handler) Purchase(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	//update only when item status is on sale
+	// update only when item status is on sale
 	if item.Status != domain.ItemStatusOnSale {
-		return echo.NewHTTPError(http.StatusPreconditionFailed, err.Error())
+		return echo.NewHTTPError(http.StatusPreconditionFailed, "This item is not on sale.")
+	}
+
+	// not to buy own items
+	if item.UserID == userID {
+		return echo.NewHTTPError(http.StatusPreconditionFailed, "Cannot buy your own item.")
 	}
 
 	// オーバーフローしていると。ここのint32(itemID)がバグって正常に処理ができないはず
@@ -514,7 +519,6 @@ func (h *Handler) Purchase(c echo.Context) error {
 
 	// TODO: if it is fail here, item status is still sold
 	// TODO: balance consistency
-	// TODO: not to buy own items. 自身の商品を買おうとしていたら、http.StatusPreconditionFailed(412)
 	if err := h.UserRepo.UpdateBalance(ctx, userID, user.Balance-item.Price); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
