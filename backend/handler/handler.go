@@ -484,6 +484,10 @@ func (h *Handler) Purchase(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "ItemID out of range")
 	}
 
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
 	item, err := h.ItemRepo.GetItem(ctx, int32(itemID))
 	if err != nil {
 		//not found handling
@@ -503,17 +507,22 @@ func (h *Handler) Purchase(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusPreconditionFailed, "Cannot buy your own item.")
 	}
 
-	// オーバーフローしていると。ここのint32(itemID)がバグって正常に処理ができないはず
-	if err := h.ItemRepo.UpdateItemStatus(ctx, int32(itemID), domain.ItemStatusSoldOut); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-	}
-
 	user, err := h.UserRepo.GetUser(ctx, userID)
 	if err != nil {
 		//not found handling
 		if err == sql.ErrNoRows {
 			return echo.NewHTTPError(http.StatusPreconditionFailed, err.Error())
 		}
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	//check if item.price > user.balance
+	if item.Price > user.Balance {
+		return echo.NewHTTPError(http.StatusBadRequest, "Your balance is not enough.")
+	}
+
+	// オーバーフローしていると。ここのint32(itemID)がバグって正常に処理ができないはず
+	if err := h.ItemRepo.UpdateItemStatus(ctx, int32(itemID), domain.ItemStatusSoldOut); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
