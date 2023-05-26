@@ -447,7 +447,7 @@ func (h *Handler) AddBalance(c echo.Context) error {
 	}
 	userID, err := getUserID(c)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, err)
+		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
 
 	user, err := h.UserRepo.GetUser(ctx, userID)
