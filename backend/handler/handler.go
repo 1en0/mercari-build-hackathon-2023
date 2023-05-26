@@ -344,6 +344,38 @@ func (h *Handler) GetItem(c echo.Context) error {
 	})
 }
 
+func (h *Handler) SearchItemsByName(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	name := c.QueryParam("name")
+
+	items, err := h.ItemRepo.GetItemsByName(ctx, name)
+
+	// TODO: not found handling
+	// http.StatusNotFound(404)
+	if items == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "There is no item containing the name")
+	}
+
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	var res []getUserItemsResponse
+	for _, item := range items {
+		cats, err := h.ItemRepo.GetCategories(ctx)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		for _, cat := range cats {
+			if cat.ID == item.CategoryID {
+				res = append(res, getUserItemsResponse{ID: item.ID, Name: item.Name, Price: item.Price, CategoryName: cat.Name})
+			}
+		}
+	}
+	return c.JSON(http.StatusOK, res)
+}
+
 func (h *Handler) GetUserItems(c echo.Context) error {
 	ctx := c.Request().Context()
 
