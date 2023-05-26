@@ -382,10 +382,13 @@ func (h *Handler) GetCategories(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	cats, err := h.ItemRepo.GetCategories(ctx)
-	// TODO: not found handling
-	// http.StatusNotFound(404)
+
+	//not found handling
+	if cats == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "No categories in database.")
+	}
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	res := make([]getCategoriesResponse, len(cats))
