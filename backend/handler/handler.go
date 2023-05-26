@@ -328,19 +328,22 @@ func (h *Handler) GetItem(c echo.Context) error {
 
 	itemID, err := strconv.Atoi(c.Param("itemID"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	item, err := h.ItemRepo.GetItem(ctx, int32(itemID))
-	// TODO: not found handling
-	// http.StatusNotFound(404)
+
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		// not found handling
+		if err == sql.ErrNoRows {
+			return echo.NewHTTPError(http.StatusNotFound, err.Error())
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	category, err := h.ItemRepo.GetCategory(ctx, item.CategoryID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(http.StatusOK, getItemResponse{
 		ID:           item.ID,
