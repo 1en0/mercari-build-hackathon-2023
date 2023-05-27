@@ -256,7 +256,7 @@ func (h *Handler) AddItem(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	item, err := h.ItemRepo.AddItem(c.Request().Context(), domain.Item{
+	itemID, err := h.ItemRepo.AddItem(c.Request().Context(), domain.Item{
 		Name:        req.Name,
 		CategoryID:  req.CategoryID,
 		UserID:      userID,
@@ -269,7 +269,7 @@ func (h *Handler) AddItem(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, addItemResponse{ID: int64(item.ID)})
+	return c.JSON(http.StatusOK, addItemResponse{ID: int64(itemID)})
 }
 
 func (h *Handler) Sell(c echo.Context) error {

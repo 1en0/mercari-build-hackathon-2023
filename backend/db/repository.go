@@ -58,7 +58,7 @@ func (r *UserDBRepository) UpdateBalanceTx(tx *sql.Tx, ctx context.Context, id i
 }
 
 type ItemRepository interface {
-	AddItem(ctx context.Context, item domain.Item) (domain.Item, error)
+	AddItem(ctx context.Context, item domain.Item) (int32, error)
 	GetItem(ctx context.Context, id int32) (domain.Item, error)
 	GetItemTx(tx *sql.Tx, ctx context.Context, id int32) (domain.Item, error)
 	GetItemImage(ctx context.Context, id int32) ([]byte, error)
@@ -83,18 +83,11 @@ func NewItemRepository(db *sql.DB) ItemRepository {
 	return &ItemDBRepository{DB: db}
 }
 
-func (r *ItemDBRepository) AddItem(ctx context.Context, item domain.Item) (domain.Item, error) {
+func (r *ItemDBRepository) AddItem(ctx context.Context, item domain.Item) (int32, error) {
 	row := r.QueryRowContext(ctx, "INSERT INTO items (name, price, description, category_id, seller_id, image, status) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id", item.Name, item.Price, item.Description, item.CategoryID, item.UserID, item.Image, item.Status)
 
 	var id int32
-	if err := row.Scan(&id); err != nil{
-		return domain.Item{}, err
-	}
-
-	row = r.QueryRowContext(ctx, "SELECT * FROM items WHERE id = ?", id)
-
-	var res domain.Item
-	return res, row.Scan(&res.ID, &res.Name, &res.Price, &res.Description, &res.CategoryID, &res.UserID, &res.Image, &res.Status, &res.CreatedAt, &res.UpdatedAt)
+	return id, row.Scan(&id)
 }
 
 func (r *ItemDBRepository) GetItem(ctx context.Context, id int32) (domain.Item, error) {
