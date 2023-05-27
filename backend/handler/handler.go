@@ -56,6 +56,14 @@ type getOnSaleItemsResponse struct {
 	CategoryName string `json:"category_name"`
 }
 
+type searchItemsResponse struct {
+	ID           int32  `json:"id"`
+	Name         string `json:"name"`
+	Price        int64  `json:"price"`
+	CategoryName string `json:"category_name"`
+	Status       int    `json:"status"`
+}
+
 type getItemResponse struct {
 	ID           int32             `json:"id"`
 	Name         string            `json:"name"`
@@ -355,6 +363,108 @@ func (h *Handler) GetItem(c echo.Context) error {
 		Description:  item.Description,
 		Status:       item.Status,
 	})
+}
+
+func (h *Handler) SearchItemsByName(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	name := c.QueryParam("name")
+
+	items, err := h.ItemRepo.GetItemsByName(ctx, name)
+
+	if items == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "There is no item containing the name")
+	}
+
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	var res []searchItemsResponse
+	for _, item := range items {
+		cats, err := h.ItemRepo.GetCategories(ctx)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		for _, cat := range cats {
+			if cat.ID == item.CategoryID {
+				res = append(res, searchItemsResponse{ID: item.ID, Name: item.Name, Price: item.Price, Status: int(item.Status), CategoryName: cat.Name})
+			}
+		}
+	}
+	return c.JSON(http.StatusOK, res)
+}
+
+func (h *Handler) SearchItemsDetail(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	name := c.QueryParam("name")
+
+	var isIncludeSoldOut bool = false
+	var priceMin int64 = 1
+	var priceMax int64 = math.MaxInt64
+	var err error
+
+	if c.QueryParam("price-min") != "" {
+		priceMin, err = strconv.ParseInt(c.QueryParam("price-min"), 10, 64)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "invalid price-min type")
+		}
+	}
+	if c.QueryParam("price-max") != "" {
+		priceMax, err = strconv.ParseInt(c.QueryParam("price-max"), 10, 64)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "invalid price-max type")
+		}
+	}
+	if c.QueryParam("is-include-soldout") != "" {
+		isIncludeSoldOut, err = strconv.ParseBool(c.QueryParam("is-include-soldout"))
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "invalid is-include-soldout type")
+		}
+	}
+
+	var items [] domain.Item 
+
+	if c.QueryParam("category") == "" {
+		if isIncludeSoldOut {
+			items, err = h.ItemRepo.GetItemsByNameAndPrice(ctx, name, priceMin, priceMax)
+	  } else {
+			items, err = h.ItemRepo.GetOnSaleItemsByNameAndPrice(ctx, name, priceMin, priceMax)
+		}
+	} else {
+		category_id, err := strconv.ParseInt(c.QueryParam("category"), 10, 64)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "invalid category type")
+		}
+		if isIncludeSoldOut {
+			items, err = h.ItemRepo.GetItemsByNameAndPriceAndCategory(ctx, name, priceMin, priceMax, int64(category_id))
+	  } else {
+			items, err = h.ItemRepo.GetOnSaleItemsByNameAndPriceAndCategory(ctx, name, priceMin, priceMax, int64(category_id))
+		}
+	}
+
+	if items == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "There is no item containing the name")
+	}
+
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	var res []searchItemsResponse
+	for _, item := range items {
+		cats, err := h.ItemRepo.GetCategories(ctx)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		for _, cat := range cats {
+			if cat.ID == item.CategoryID {
+				res = append(res, searchItemsResponse{ID: item.ID, Name: item.Name, Price: item.Price, Status: int(item.Status), CategoryName: cat.Name})
+			}
+		}
+	}
+	return c.JSON(http.StatusOK, res)
 }
 
 func (h *Handler) GetUserItems(c echo.Context) error {

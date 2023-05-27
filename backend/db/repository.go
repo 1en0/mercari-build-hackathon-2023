@@ -70,6 +70,11 @@ type ItemRepository interface {
 	GetItemImage(ctx context.Context, id int32) ([]byte, error)
 	GetOnSaleItems(ctx context.Context) ([]domain.Item, error)
 	GetItemsByUserID(ctx context.Context, userID int64) ([]domain.Item, error)
+	GetItemsByName(ctx context.Context, name string) ([]domain.Item, error)
+	GetOnSaleItemsByNameAndPrice(ctx context.Context, name string, priceMin int64, priceMax int64) ([]domain.Item, error);
+	GetOnSaleItemsByNameAndPriceAndCategory(ctx context.Context, name string, priceMin int64, priceMax int64, category_id int64) ([]domain.Item, error);
+	GetItemsByNameAndPrice(ctx context.Context, name string, priceMin int64, priceMax int64) ([]domain.Item, error);
+	GetItemsByNameAndPriceAndCategory(ctx context.Context, name string, priceMin int64, priceMax int64, category_id int64) ([]domain.Item, error);
 	GetCategory(ctx context.Context, id int64) (domain.Category, error)
 	GetCategories(ctx context.Context) ([]domain.Category, error)
 	UpdateItemStatus(ctx context.Context, id int32, status domain.ItemStatus) error
@@ -140,6 +145,115 @@ func (r *ItemDBRepository) GetOnSaleItems(ctx context.Context) ([]domain.Item, e
 
 func (r *ItemDBRepository) GetItemsByUserID(ctx context.Context, userID int64) ([]domain.Item, error) {
 	rows, err := r.QueryContext(ctx, "SELECT * FROM items WHERE seller_id = ?", userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []domain.Item
+	for rows.Next() {
+		var item domain.Item
+		if err := rows.Scan(&item.ID, &item.Name, &item.Price, &item.Description, &item.CategoryID, &item.UserID, &item.Image, &item.Status, &item.CreatedAt, &item.UpdatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (r *ItemDBRepository) GetItemsByName(ctx context.Context, name string) ([]domain.Item, error) {
+	rows, err := r.QueryContext(ctx, "SELECT * FROM items WHERE name LIKE ?", "%" + name + "%")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []domain.Item
+	for rows.Next() {
+		var item domain.Item
+		if err := rows.Scan(&item.ID, &item.Name, &item.Price, &item.Description, &item.CategoryID, &item.UserID, &item.Image, &item.Status, &item.CreatedAt, &item.UpdatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (r *ItemDBRepository) GetOnSaleItemsByNameAndPrice(ctx context.Context, name string, priceMin int64, priceMax int64) ([]domain.Item, error) {
+	rows, err := r.QueryContext(ctx, "SELECT * FROM items WHERE name LIKE ? AND price >= ? AND price <= ? AND status = ? ORDER BY updated_at desc", 
+			"%" + name + "%", priceMin, priceMax, domain.ItemStatusOnSale)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []domain.Item
+	for rows.Next() {
+		var item domain.Item
+		if err := rows.Scan(&item.ID, &item.Name, &item.Price, &item.Description, &item.CategoryID, &item.UserID, &item.Image, &item.Status, &item.CreatedAt, &item.UpdatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (r *ItemDBRepository) GetOnSaleItemsByNameAndPriceAndCategory(ctx context.Context, name string, priceMin int64, priceMax int64, category_id int64) ([]domain.Item, error) {
+	rows, err := r.QueryContext(ctx, "SELECT * FROM items WHERE name LIKE ? AND price >= ? AND price <= ? AND category_id = ? AND status = ? ORDER BY updated_at desc", 
+			"%" + name + "%", priceMin, priceMax, category_id, domain.ItemStatusOnSale)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []domain.Item
+	for rows.Next() {
+		var item domain.Item
+		if err := rows.Scan(&item.ID, &item.Name, &item.Price, &item.Description, &item.CategoryID, &item.UserID, &item.Image, &item.Status, &item.CreatedAt, &item.UpdatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (r *ItemDBRepository) GetItemsByNameAndPrice(ctx context.Context, name string, priceMin int64, priceMax int64) ([]domain.Item, error) {
+	rows, err := r.QueryContext(ctx, "SELECT * FROM items WHERE name LIKE ? AND price >= ? AND price <= ? AND status IN (?,?) ORDER BY updated_at desc", 
+			"%" + name + "%", priceMin, priceMax, domain.ItemStatusOnSale, domain.ItemStatusSoldOut)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []domain.Item
+	for rows.Next() {
+		var item domain.Item
+		if err := rows.Scan(&item.ID, &item.Name, &item.Price, &item.Description, &item.CategoryID, &item.UserID, &item.Image, &item.Status, &item.CreatedAt, &item.UpdatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (r *ItemDBRepository) GetItemsByNameAndPriceAndCategory(ctx context.Context, name string, priceMin int64, priceMax int64, category_id int64) ([]domain.Item, error) {
+	rows, err := r.QueryContext(ctx, "SELECT * FROM items WHERE name LIKE ? AND price >= ? AND price <= ? AND category_id = ? AND status IN (?,?) ORDER BY updated_at desc", 
+			"%" + name + "%", priceMin, priceMax, category_id, domain.ItemStatusOnSale, domain.ItemStatusSoldOut)
 	if err != nil {
 		return nil, err
 	}
