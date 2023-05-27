@@ -294,7 +294,7 @@ func (h *Handler) Sell(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
-	if userID != item.UserID || req.UserID != item.UserID {
+	if userID != item.UserID || (req.UserID != 0 && req.UserID != item.UserID) {
 		return echo.NewHTTPError(http.StatusPreconditionFailed, "You can only sell your own items.")
 	}
 
