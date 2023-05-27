@@ -55,7 +55,6 @@ export const ItemDetail = () => {
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
-        Authorization: `Bearer ${cookies.token}`,
       },
     })
       .then((res) => {
