@@ -24,13 +24,7 @@ func NewUserRepository(db *sql.DB) UserRepository {
 }
 
 func (r *UserDBRepository) AddUser(ctx context.Context, user domain.User) (int64, error) {
-	if _, err := r.ExecContext(ctx, "INSERT INTO users (name, password) VALUES (?, ?)", user.Name, user.Password); err != nil {
-		return 0, err
-	}
-	// TODO: if other insert query is executed at the same time, it might return wrong id
-	// http.StatusConflict(409) 既に同じIDがあった場合
-	row := r.QueryRowContext(ctx, "SELECT id FROM users WHERE rowid = LAST_INSERT_ROWID()")
-
+	row := r.QueryRowContext(ctx, "INSERT INTO users (name, password) VALUES (?, ?) RETURNING id", user.Name, user.Password)
 	var id int64
 	return id, row.Scan(&id)
 }
@@ -90,12 +84,14 @@ func NewItemRepository(db *sql.DB) ItemRepository {
 }
 
 func (r *ItemDBRepository) AddItem(ctx context.Context, item domain.Item) (domain.Item, error) {
-	if _, err := r.ExecContext(ctx, "INSERT INTO items (name, price, description, category_id, seller_id, image, status) VALUES (?, ?, ?, ?, ?, ?, ?)", item.Name, item.Price, item.Description, item.CategoryID, item.UserID, item.Image, item.Status); err != nil {
+	row := r.QueryRowContext(ctx, "INSERT INTO items (name, price, description, category_id, seller_id, image, status) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id", item.Name, item.Price, item.Description, item.CategoryID, item.UserID, item.Image, item.Status)
+
+	var id int32
+	if err := row.Scan(&id); err != nil{
 		return domain.Item{}, err
 	}
-	// TODO: if other insert query is executed at the same time, it might return wrong id
-	// http.StatusConflict(409) 既に同じIDがあった場合
-	row := r.QueryRowContext(ctx, "SELECT * FROM items WHERE rowid = LAST_INSERT_ROWID()")
+
+	row = r.QueryRowContext(ctx, "SELECT * FROM items WHERE id = ?", id)
 
 	var res domain.Item
 	return res, row.Scan(&res.ID, &res.Name, &res.Price, &res.Description, &res.CategoryID, &res.UserID, &res.Image, &res.Status, &res.CreatedAt, &res.UpdatedAt)
