@@ -56,6 +56,14 @@ type getOnSaleItemsResponse struct {
 	CategoryName string `json:"category_name"`
 }
 
+type searchItemsResponse struct {
+	ID           int32  `json:"id"`
+	Name         string `json:"name"`
+	Price        int64  `json:"price"`
+	CategoryName string `json:"category_name"`
+	Status       int    `json:"status"`
+}
+
 type getItemResponse struct {
 	ID           int32             `json:"id"`
 	Name         string            `json:"name"`
@@ -359,7 +367,7 @@ func (h *Handler) SearchItemsByName(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	var res []getUserItemsResponse
+	var res []searchItemsResponse
 	for _, item := range items {
 		cats, err := h.ItemRepo.GetCategories(ctx)
 		if err != nil {
@@ -367,7 +375,7 @@ func (h *Handler) SearchItemsByName(c echo.Context) error {
 		}
 		for _, cat := range cats {
 			if cat.ID == item.CategoryID {
-				res = append(res, getUserItemsResponse{ID: item.ID, Name: item.Name, Price: item.Price, CategoryName: cat.Name})
+				res = append(res, searchItemsResponse{ID: item.ID, Name: item.Name, Price: item.Price, Status: int(item.Status), CategoryName: cat.Name})
 			}
 		}
 	}
@@ -431,7 +439,7 @@ func (h *Handler) SearchItemsDetail(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	var res []getUserItemsResponse
+	var res []searchItemsResponse
 	for _, item := range items {
 		cats, err := h.ItemRepo.GetCategories(ctx)
 		if err != nil {
@@ -439,7 +447,7 @@ func (h *Handler) SearchItemsDetail(c echo.Context) error {
 		}
 		for _, cat := range cats {
 			if cat.ID == item.CategoryID {
-				res = append(res, getUserItemsResponse{ID: item.ID, Name: item.Name, Price: item.Price, CategoryName: cat.Name})
+				res = append(res, searchItemsResponse{ID: item.ID, Name: item.Name, Price: item.Price, Status: int(item.Status), CategoryName: cat.Name})
 			}
 		}
 	}
