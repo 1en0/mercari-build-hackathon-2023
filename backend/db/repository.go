@@ -80,7 +80,7 @@ type ItemRepository interface {
 	GetCategories(ctx context.Context) ([]domain.Category, error)
 	UpdateItemStatus(ctx context.Context, id int32, status domain.ItemStatus) error
 	UpdateItemStatusTx(tx *sql.Tx, ctx context.Context, id int32, status domain.ItemStatus) error
-	EditItem(ctx context.Context, item domain.Item) (domain.Item, error)
+	EditItem(ctx context.Context, item domain.Item) (int32, error)
 }
 
 type ItemDBRepository struct {
@@ -317,7 +317,7 @@ func (r *ItemDBRepository) GetCategories(ctx context.Context) ([]domain.Category
 	return cats, nil
 }
 
-func (r *ItemDBRepository) EditItem(ctx context.Context, item domain.Item) (domain.Item, error) {
+func (r *ItemDBRepository) EditItem(ctx context.Context, item domain.Item) (int32, error) {
 	updateQuery := "UPDATE items SET "
 	updateValues := []interface{}{}
 
@@ -354,11 +354,12 @@ func (r *ItemDBRepository) EditItem(ctx context.Context, item domain.Item) (doma
 
 	_, err := r.ExecContext(ctx, updateQuery, updateValues...)
 	if err != nil {
-		return domain.Item{}, err
+		return -1, err
 	}
 
-	row := r.QueryRowContext(ctx, "SELECT * FROM items WHERE id=?", item.ID)
+	//row := r.QueryRowContext(ctx, "SELECT * FROM items WHERE id=?", item.ID)
 
-	var res domain.Item
-	return res, row.Scan(&res.ID, &res.Name, &res.Price, &res.Description, &res.CategoryID, &res.UserID, &res.Image, &res.Status, &res.CreatedAt, &res.UpdatedAt)
+	//var res domain.Item
+	//return res, row.Scan(&res.ID, &res.Name, &res.Price, &res.Description, &res.CategoryID, &res.UserID, &res.Image, &res.Status, &res.CreatedAt, &res.UpdatedAt)
+	return item.ID, nil
 }
