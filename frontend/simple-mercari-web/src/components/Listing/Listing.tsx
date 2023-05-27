@@ -90,6 +90,7 @@ export const Listing: React.FC = () => {
       },
       body: JSON.stringify({
         item_id: itemID,
+        user_id: parseInt(cookies.userID),
       }),
     })
       .then((_) => {
