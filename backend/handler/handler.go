@@ -384,19 +384,19 @@ func (h *Handler) SearchItemsDetail(c echo.Context) error {
 	var priceMax int64 = math.MaxInt64
 	var err error
 
-	if (c.QueryParam("price-min") != "") {
+	if c.QueryParam("price-min") != "" {
 		priceMin, err = strconv.ParseInt(c.QueryParam("price-min"), 10, 64)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "invalid price-min type")
 		}
 	}
-	if (c.QueryParam("price-max") != "") {
+	if c.QueryParam("price-max") != "" {
 		priceMax, err = strconv.ParseInt(c.QueryParam("price-max"), 10, 64)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "invalid price-max type")
 		}
 	}
-	if (c.QueryParam("is-include-soldout") != "") {
+	if c.QueryParam("is-include-soldout") != "" {
 		isIncludeSoldOut, err = strconv.ParseBool(c.QueryParam("is-include-soldout"))
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "invalid is-include-soldout type")
