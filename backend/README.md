@@ -31,7 +31,7 @@ $ curl -X POST 'http://127.0.0.1:9000/initialize'
 | User listed item                   | `/users/:userID/items`           | Sort by created time                                                                                                    |
 | Item detail                        | `GET /items/:itemID`             |                                                                                                                         |
 | Purchase item                      | `POST /purchase/:itemID`         |                                                                                                                         |
-| Edit item *unimplemented           | `PUT /items `                    | Expect same request body as POST /items                                                                                 |
+| Edit item *unimplemented           | `PUT /items/:itemID `            | Expect same request body as POST /items                                                                                 |
 | Create new item draft              | `POST /items`                    |                                                                                                                         |
 | Start to sell item                 | `POST /sell`                     |                                                                                                                         |
 
