@@ -205,27 +205,30 @@ func (h *Handler) Login(c echo.Context) error {
 }
 
 func (h *Handler) AddItem(c echo.Context) error {
-	// TODO: validation
-	// http.StatusBadRequest(400)
 	ctx := c.Request().Context()
 
 	req := new(addItemRequest)
 	if err := c.Bind(req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err)
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	//validation
+	if req.Price <= 0 {
+		return echo.NewHTTPError(http.StatusBadRequest, "Price must be greater than 0.")
 	}
 
 	userID, err := getUserID(c)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, err)
+		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
 	file, err := c.FormFile("image")
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	src, err := file.Open()
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 	defer src.Close()
 
@@ -234,7 +237,7 @@ func (h *Handler) AddItem(c echo.Context) error {
 	// TODO: pass very big file
 	// http.StatusBadRequest(400)
 	if _, err := io.Copy(blob, src); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	_, err = h.ItemRepo.GetCategory(ctx, req.CategoryID)
@@ -242,7 +245,7 @@ func (h *Handler) AddItem(c echo.Context) error {
 		if err == sql.ErrNoRows {
 			return echo.NewHTTPError(http.StatusBadRequest, "invalid categoryID")
 		}
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	item, err := h.ItemRepo.AddItem(c.Request().Context(), domain.Item{
@@ -255,7 +258,7 @@ func (h *Handler) AddItem(c echo.Context) error {
 		Status:      domain.ItemStatusInitial,
 	})
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	return c.JSON(http.StatusOK, addItemResponse{ID: int64(item.ID)})
@@ -266,22 +269,27 @@ func (h *Handler) Sell(c echo.Context) error {
 	req := new(sellRequest)
 
 	if err := c.Bind(req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err)
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	item, err := h.ItemRepo.GetItem(ctx, req.ItemID)
-	// TODO: not found handling
-	// http.StatusPreconditionFailed(412)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		// not found handling
+		if err == sql.ErrNoRows {
+			return echo.NewHTTPError(http.StatusPreconditionFailed, err.Error())
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	// TODO: check req.UserID and item.UserID
 	// http.StatusPreconditionFailed(412)
-	// TODO: only update when status is initial
-	// http.StatusPreconditionFailed(412)
+
+	// only update when status is initial
+	if item.Status != domain.ItemStatusInitial {
+		return echo.NewHTTPError(http.StatusPreconditionFailed, "Item Status is not initial")
+	}
 	if err := h.ItemRepo.UpdateItemStatus(ctx, item.ID, domain.ItemStatusOnSale); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	return c.JSON(http.StatusOK, "successful")
@@ -291,17 +299,19 @@ func (h *Handler) GetOnSaleItems(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	items, err := h.ItemRepo.GetOnSaleItems(ctx)
-	// TODO: not found handling
-	// http.StatusNotFound(404)
+	// not found handling
+	if items == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "There is no item on sale")
+	}
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	var res []getOnSaleItemsResponse
 	for _, item := range items {
 		cats, err := h.ItemRepo.GetCategories(ctx)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, err)
+			return c.JSON(http.StatusInternalServerError, err.Error())
 		}
 		for _, cat := range cats {
 			if cat.ID == item.CategoryID {
@@ -318,19 +328,22 @@ func (h *Handler) GetItem(c echo.Context) error {
 
 	itemID, err := strconv.Atoi(c.Param("itemID"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	item, err := h.ItemRepo.GetItem(ctx, int32(itemID))
-	// TODO: not found handling
-	// http.StatusNotFound(404)
+
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		// not found handling
+		if err == sql.ErrNoRows {
+			return echo.NewHTTPError(http.StatusNotFound, err.Error())
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	category, err := h.ItemRepo.GetCategory(ctx, item.CategoryID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(http.StatusOK, getItemResponse{
 		ID:           item.ID,
@@ -353,17 +366,20 @@ func (h *Handler) GetUserItems(c echo.Context) error {
 	}
 
 	items, err := h.ItemRepo.GetItemsByUserID(ctx, userID)
-	// TODO: not found handling
-	// http.StatusNotFound(404)
+
+	// not found handling
+	if items == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "No items found for user "+strconv.FormatInt(userID, 10))
+	}
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	var res []getUserItemsResponse
 	for _, item := range items {
 		cats, err := h.ItemRepo.GetCategories(ctx)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, err)
+			return c.JSON(http.StatusInternalServerError, err.Error())
 		}
 		for _, cat := range cats {
 			if cat.ID == item.CategoryID {
@@ -379,10 +395,13 @@ func (h *Handler) GetCategories(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	cats, err := h.ItemRepo.GetCategories(ctx)
-	// TODO: not found handling
-	// http.StatusNotFound(404)
+
+	//not found handling
+	if cats == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "No categories in database.")
+	}
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	res := make([]getCategoriesResponse, len(cats))
@@ -396,16 +415,19 @@ func (h *Handler) GetCategories(c echo.Context) error {
 func (h *Handler) GetImage(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	// TODO: overflow
 	itemID, err := strconv.Atoi(c.Param("itemID"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "invalid itemID type")
+	}
+	// check whether itemID is within the range of int32
+	if itemID > math.MaxInt32 || itemID < math.MinInt32 {
+		return echo.NewHTTPError(http.StatusBadRequest, "ItemID out of range")
 	}
 
 	// オーバーフローしていると。ここのint32(itemID)がバグって正常に処理ができないはず
 	data, err := h.ItemRepo.GetItemImage(ctx, int32(itemID))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	return c.Blob(http.StatusOK, "image/jpeg", data)
@@ -425,7 +447,7 @@ func (h *Handler) AddBalance(c echo.Context) error {
 	}
 	userID, err := getUserID(c)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, err)
+		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
 
 	user, err := h.UserRepo.GetUser(ctx, userID)
