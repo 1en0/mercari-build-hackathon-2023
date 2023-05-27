@@ -286,7 +286,7 @@ func (h *Handler) Sell(c echo.Context) error {
 
 	// only update when status is initial
 	if item.Status != domain.ItemStatusInitial {
-		return echo.NewHTTPError(http.StatusPreconditionFailed, err.Error())
+		return echo.NewHTTPError(http.StatusPreconditionFailed, "Item Status is not initial")
 	}
 	if err := h.ItemRepo.UpdateItemStatus(ctx, item.ID, domain.ItemStatusOnSale); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
