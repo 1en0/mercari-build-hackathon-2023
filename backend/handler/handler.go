@@ -82,6 +82,7 @@ type getCategoriesResponse struct {
 
 type sellRequest struct {
 	ItemID int32 `json:"item_id"`
+	UserID int64 `json:"user_id"`
 }
 
 type addItemRequest struct {
@@ -300,8 +301,13 @@ func (h *Handler) Sell(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	// TODO: check req.UserID and item.UserID
-	// http.StatusPreconditionFailed(412)
+	userID, err := getUserID(c)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
+	}
+	if userID != item.UserID || (req.UserID != 0 && req.UserID != item.UserID) {
+		return echo.NewHTTPError(http.StatusPreconditionFailed, "You can only sell your own items.")
+	}
 
 	// only update when status is initial
 	if item.Status != domain.ItemStatusInitial {
