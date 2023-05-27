@@ -83,6 +83,7 @@ type getCategoriesResponse struct {
 
 type sellRequest struct {
 	ItemID int32 `json:"item_id"`
+	UserID int64 `json:"user_id"`
 }
 
 type addItemRequest struct {
@@ -92,7 +93,18 @@ type addItemRequest struct {
 	Description string `form:"description"`
 }
 
+type editItemRequest struct {
+	Name        string `form:"name"`
+	CategoryID  int64  `form:"category_id"`
+	Price       int64  `form:"price"`
+	Description string `form:"description"`
+}
+
 type addItemResponse struct {
+	ID int64 `json:"id"`
+}
+
+type editItemResponse struct {
 	ID int64 `json:"id"`
 }
 
@@ -257,7 +269,7 @@ func (h *Handler) AddItem(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	item, err := h.ItemRepo.AddItem(c.Request().Context(), domain.Item{
+	itemID, err := h.ItemRepo.AddItem(c.Request().Context(), domain.Item{
 		Name:        req.Name,
 		CategoryID:  req.CategoryID,
 		UserID:      userID,
@@ -270,7 +282,7 @@ func (h *Handler) AddItem(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, addItemResponse{ID: int64(item.ID)})
+	return c.JSON(http.StatusOK, addItemResponse{ID: int64(itemID)})
 }
 
 func (h *Handler) Sell(c echo.Context) error {
@@ -290,8 +302,13 @@ func (h *Handler) Sell(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	// TODO: check req.UserID and item.UserID
-	// http.StatusPreconditionFailed(412)
+	userID, err := getUserID(c)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
+	}
+	if userID != item.UserID || (req.UserID != 0 && req.UserID != item.UserID) {
+		return echo.NewHTTPError(http.StatusPreconditionFailed, "You can only sell your own items.")
+	}
 
 	// only update when status is initial
 	if item.Status != domain.ItemStatusInitial {
@@ -490,12 +507,12 @@ func (h *Handler) SearchItemsDetail(c echo.Context) error {
 		}
 	}
 
-	var items [] domain.Item 
+	var items []domain.Item
 
 	if c.QueryParam("category") == "" {
 		if isIncludeSoldOut {
 			items, err = h.ItemRepo.GetItemsByNameAndPrice(ctx, name, priceMin, priceMax)
-	  } else {
+		} else {
 			items, err = h.ItemRepo.GetOnSaleItemsByNameAndPrice(ctx, name, priceMin, priceMax)
 		}
 	} else {
@@ -505,7 +522,7 @@ func (h *Handler) SearchItemsDetail(c echo.Context) error {
 		}
 		if isIncludeSoldOut {
 			items, err = h.ItemRepo.GetItemsByNameAndPriceAndCategory(ctx, name, priceMin, priceMax, int64(category_id))
-	  } else {
+		} else {
 			items, err = h.ItemRepo.GetOnSaleItemsByNameAndPriceAndCategory(ctx, name, priceMin, priceMax, int64(category_id))
 		}
 	}
@@ -753,6 +770,97 @@ func (h *Handler) Purchase(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, "successful")
+}
+
+func (h *Handler) EditItem(c echo.Context) error {
+	ctx := c.Request().Context()
+	userID, err := getUserID(c)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
+	}
+
+	req := new(editItemRequest)
+	if err := c.Bind(req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	//validation
+	if req.Price < 0 {
+		return echo.NewHTTPError(http.StatusBadRequest, "Price must be greater than 0.")
+	}
+
+	itemID, err := strconv.Atoi(c.Param("itemID"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	// check whether itemID is within the range of int32
+	if itemID > math.MaxInt32 || itemID < math.MinInt32 {
+		return echo.NewHTTPError(http.StatusBadRequest, "ItemID out of range")
+	}
+
+	item, err := h.ItemRepo.GetItem(ctx, int32(itemID))
+	if err != nil {
+		//not found handling
+		if err == sql.ErrNoRows {
+			return echo.NewHTTPError(http.StatusPreconditionFailed, err.Error())
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	// constraint: can not edit other user's item
+	if item.UserID != userID {
+		return echo.NewHTTPError(http.StatusPreconditionFailed, "Cannot edit other user's item")
+	}
+
+	if req.CategoryID != 0 {
+		_, err = h.ItemRepo.GetCategory(ctx, req.CategoryID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return echo.NewHTTPError(http.StatusBadRequest, "invalid categoryID")
+			}
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+	}
+
+	newItem := domain.Item{
+		ID:          int32(itemID),
+		Name:        req.Name,
+		CategoryID:  req.CategoryID,
+		UserID:      userID,
+		Price:       req.Price,
+		Description: req.Description,
+	}
+
+	file, err := c.FormFile("image")
+	if err != nil {
+		if err == http.ErrMissingFile {
+			newItem.Image = nil
+		} else {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+	} else {
+		src, err := file.Open()
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+		defer src.Close()
+
+		var dest []byte
+		blob := bytes.NewBuffer(dest)
+		// TODO: pass very big file
+		// http.StatusBadRequest(400)
+		if _, err := io.Copy(blob, src); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+		newItem.Image = blob.Bytes()
+	}
+
+	_, err = h.ItemRepo.EditItem(c.Request().Context(), newItem)
+
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, editItemResponse{ID: int64(item.ID)})
 }
 
 func getUserID(c echo.Context) (int64, error) {

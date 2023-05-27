@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"strings"
 
 	"github.com/1en0/mecari-build-hackathon-2023/backend/domain"
 )
@@ -24,13 +25,7 @@ func NewUserRepository(db *sql.DB) UserRepository {
 }
 
 func (r *UserDBRepository) AddUser(ctx context.Context, user domain.User) (int64, error) {
-	if _, err := r.ExecContext(ctx, "INSERT INTO users (name, password) VALUES (?, ?)", user.Name, user.Password); err != nil {
-		return 0, err
-	}
-	// TODO: if other insert query is executed at the same time, it might return wrong id
-	// http.StatusConflict(409) 既に同じIDがあった場合
-	row := r.QueryRowContext(ctx, "SELECT id FROM users WHERE rowid = LAST_INSERT_ROWID()")
-
+	row := r.QueryRowContext(ctx, "INSERT INTO users (name, password) VALUES (?, ?) RETURNING id", user.Name, user.Password)
 	var id int64
 	return id, row.Scan(&id)
 }
@@ -64,23 +59,24 @@ func (r *UserDBRepository) UpdateBalanceTx(tx *sql.Tx, ctx context.Context, id i
 }
 
 type ItemRepository interface {
-	AddItem(ctx context.Context, item domain.Item) (domain.Item, error)
+	AddItem(ctx context.Context, item domain.Item) (int32, error)
 	GetItem(ctx context.Context, id int32) (domain.Item, error)
 	GetItemTx(tx *sql.Tx, ctx context.Context, id int32) (domain.Item, error)
 	GetItemImage(ctx context.Context, id int32) ([]byte, error)
 	GetOnSaleItems(ctx context.Context) ([]domain.Item, error)
 	GetItemsByUserID(ctx context.Context, userID int64) ([]domain.Item, error)
 	GetItemsByName(ctx context.Context, name string) ([]domain.Item, error)
-	GetOnSaleItemsByNameAndPrice(ctx context.Context, name string, priceMin int64, priceMax int64) ([]domain.Item, error);
-	GetOnSaleItemsByNameAndPriceAndCategory(ctx context.Context, name string, priceMin int64, priceMax int64, category_id int64) ([]domain.Item, error);
-	GetItemsByNameAndPrice(ctx context.Context, name string, priceMin int64, priceMax int64) ([]domain.Item, error);
-	GetItemsByNameAndPriceAndCategory(ctx context.Context, name string, priceMin int64, priceMax int64, category_id int64) ([]domain.Item, error);
+	GetOnSaleItemsByNameAndPrice(ctx context.Context, name string, priceMin int64, priceMax int64) ([]domain.Item, error)
+	GetOnSaleItemsByNameAndPriceAndCategory(ctx context.Context, name string, priceMin int64, priceMax int64, category_id int64) ([]domain.Item, error)
+	GetItemsByNameAndPrice(ctx context.Context, name string, priceMin int64, priceMax int64) ([]domain.Item, error)
+	GetItemsByNameAndPriceAndCategory(ctx context.Context, name string, priceMin int64, priceMax int64, category_id int64) ([]domain.Item, error)
 	GetCategory(ctx context.Context, id int64) (domain.Category, error)
 	GetCategories(ctx context.Context) ([]domain.Category, error)
 	UpdateItemStatus(ctx context.Context, id int32, status domain.ItemStatus) error
 	UpdateItemStatusTx(tx *sql.Tx, ctx context.Context, id int32, status domain.ItemStatus) error
 	AddHistory(ctx context.Context, userID int64, itemID int32) error
 	GetViewCount(ctx context.Context, itemID int32) (int64, error)
+	EditItem(ctx context.Context, item domain.Item) (int32, error)
 }
 
 type ItemDBRepository struct {
@@ -91,16 +87,11 @@ func NewItemRepository(db *sql.DB) ItemRepository {
 	return &ItemDBRepository{DB: db}
 }
 
-func (r *ItemDBRepository) AddItem(ctx context.Context, item domain.Item) (domain.Item, error) {
-	if _, err := r.ExecContext(ctx, "INSERT INTO items (name, price, description, category_id, seller_id, image, status) VALUES (?, ?, ?, ?, ?, ?, ?)", item.Name, item.Price, item.Description, item.CategoryID, item.UserID, item.Image, item.Status); err != nil {
-		return domain.Item{}, err
-	}
-	// TODO: if other insert query is executed at the same time, it might return wrong id
-	// http.StatusConflict(409) 既に同じIDがあった場合
-	row := r.QueryRowContext(ctx, "SELECT * FROM items WHERE rowid = LAST_INSERT_ROWID()")
+func (r *ItemDBRepository) AddItem(ctx context.Context, item domain.Item) (int32, error) {
+	row := r.QueryRowContext(ctx, "INSERT INTO items (name, price, description, category_id, seller_id, image, status) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id", item.Name, item.Price, item.Description, item.CategoryID, item.UserID, item.Image, item.Status)
 
-	var res domain.Item
-	return res, row.Scan(&res.ID, &res.Name, &res.Price, &res.Description, &res.CategoryID, &res.UserID, &res.Image, &res.Status, &res.CreatedAt, &res.UpdatedAt)
+	var id int32
+	return id, row.Scan(&id)
 }
 
 func (r *ItemDBRepository) GetItem(ctx context.Context, id int32) (domain.Item, error) {
@@ -167,7 +158,7 @@ func (r *ItemDBRepository) GetItemsByUserID(ctx context.Context, userID int64) (
 }
 
 func (r *ItemDBRepository) GetItemsByName(ctx context.Context, name string) ([]domain.Item, error) {
-	rows, err := r.QueryContext(ctx, "SELECT * FROM items WHERE name LIKE ?", "%" + name + "%")
+	rows, err := r.QueryContext(ctx, "SELECT * FROM items WHERE name LIKE ?", "%"+name+"%")
 	if err != nil {
 		return nil, err
 	}
@@ -188,8 +179,8 @@ func (r *ItemDBRepository) GetItemsByName(ctx context.Context, name string) ([]d
 }
 
 func (r *ItemDBRepository) GetOnSaleItemsByNameAndPrice(ctx context.Context, name string, priceMin int64, priceMax int64) ([]domain.Item, error) {
-	rows, err := r.QueryContext(ctx, "SELECT * FROM items WHERE name LIKE ? AND price >= ? AND price <= ? AND status = ? ORDER BY updated_at desc", 
-			"%" + name + "%", priceMin, priceMax, domain.ItemStatusOnSale)
+	rows, err := r.QueryContext(ctx, "SELECT * FROM items WHERE name LIKE ? AND price >= ? AND price <= ? AND status = ? ORDER BY updated_at desc",
+		"%"+name+"%", priceMin, priceMax, domain.ItemStatusOnSale)
 	if err != nil {
 		return nil, err
 	}
@@ -210,8 +201,8 @@ func (r *ItemDBRepository) GetOnSaleItemsByNameAndPrice(ctx context.Context, nam
 }
 
 func (r *ItemDBRepository) GetOnSaleItemsByNameAndPriceAndCategory(ctx context.Context, name string, priceMin int64, priceMax int64, category_id int64) ([]domain.Item, error) {
-	rows, err := r.QueryContext(ctx, "SELECT * FROM items WHERE name LIKE ? AND price >= ? AND price <= ? AND category_id = ? AND status = ? ORDER BY updated_at desc", 
-			"%" + name + "%", priceMin, priceMax, category_id, domain.ItemStatusOnSale)
+	rows, err := r.QueryContext(ctx, "SELECT * FROM items WHERE name LIKE ? AND price >= ? AND price <= ? AND category_id = ? AND status = ? ORDER BY updated_at desc",
+		"%"+name+"%", priceMin, priceMax, category_id, domain.ItemStatusOnSale)
 	if err != nil {
 		return nil, err
 	}
@@ -232,8 +223,8 @@ func (r *ItemDBRepository) GetOnSaleItemsByNameAndPriceAndCategory(ctx context.C
 }
 
 func (r *ItemDBRepository) GetItemsByNameAndPrice(ctx context.Context, name string, priceMin int64, priceMax int64) ([]domain.Item, error) {
-	rows, err := r.QueryContext(ctx, "SELECT * FROM items WHERE name LIKE ? AND price >= ? AND price <= ? AND status IN (?,?) ORDER BY updated_at desc", 
-			"%" + name + "%", priceMin, priceMax, domain.ItemStatusOnSale, domain.ItemStatusSoldOut)
+	rows, err := r.QueryContext(ctx, "SELECT * FROM items WHERE name LIKE ? AND price >= ? AND price <= ? AND status IN (?,?) ORDER BY updated_at desc",
+		"%"+name+"%", priceMin, priceMax, domain.ItemStatusOnSale, domain.ItemStatusSoldOut)
 	if err != nil {
 		return nil, err
 	}
@@ -254,8 +245,8 @@ func (r *ItemDBRepository) GetItemsByNameAndPrice(ctx context.Context, name stri
 }
 
 func (r *ItemDBRepository) GetItemsByNameAndPriceAndCategory(ctx context.Context, name string, priceMin int64, priceMax int64, category_id int64) ([]domain.Item, error) {
-	rows, err := r.QueryContext(ctx, "SELECT * FROM items WHERE name LIKE ? AND price >= ? AND price <= ? AND category_id = ? AND status IN (?,?) ORDER BY updated_at desc", 
-			"%" + name + "%", priceMin, priceMax, category_id, domain.ItemStatusOnSale, domain.ItemStatusSoldOut)
+	rows, err := r.QueryContext(ctx, "SELECT * FROM items WHERE name LIKE ? AND price >= ? AND price <= ? AND category_id = ? AND status IN (?,?) ORDER BY updated_at desc",
+		"%"+name+"%", priceMin, priceMax, category_id, domain.ItemStatusOnSale, domain.ItemStatusSoldOut)
 	if err != nil {
 		return nil, err
 	}
@@ -332,4 +323,51 @@ func (r *ItemDBRepository) GetViewCount(ctx context.Context, itemID int32) (int6
 
 	var count int64
 	return count, row.Scan(&count)
+}
+
+func (r *ItemDBRepository) EditItem(ctx context.Context, item domain.Item) (int32, error) {
+	updateQuery := "UPDATE items SET "
+	updateValues := []interface{}{}
+
+	if item.Name != "" {
+		updateQuery += "name=?, "
+		updateValues = append(updateValues, item.Name)
+	}
+	if item.Price != 0 {
+		updateQuery += "price=?, "
+		updateValues = append(updateValues, item.Price)
+	}
+	if item.Description != "" {
+		updateQuery += "description=?, "
+		updateValues = append(updateValues, item.Description)
+	}
+	if item.CategoryID != 0 {
+		updateQuery += "category_id=?, "
+		updateValues = append(updateValues, item.CategoryID)
+	}
+	if item.UserID != 0 {
+		updateQuery += "seller_id=?, "
+		updateValues = append(updateValues, item.UserID)
+	}
+	if item.Image != nil {
+		updateQuery += "image=?, "
+		updateValues = append(updateValues, item.Image)
+	}
+
+	updateQuery = strings.TrimSuffix(updateQuery, ", ")
+
+	updateQuery += " WHERE id=?"
+
+	updateValues = append(updateValues, item.ID)
+
+	_, err := r.ExecContext(ctx, updateQuery, updateValues...)
+	if err != nil {
+		return -1, err
+	}
+
+	//row := r.QueryRowContext(ctx, "SELECT * FROM items WHERE id=?", item.ID)
+
+	//var res domain.Item
+	//return res, row.Scan(&res.ID, &res.Name, &res.Price, &res.Description, &res.CategoryID, &res.UserID, &res.Image, &res.Status, &res.CreatedAt, &res.UpdatedAt)
+	return item.ID, nil
 }
