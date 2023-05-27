@@ -7,6 +7,7 @@ interface Item {
 	id: number;
 	name: string;
 	price: number;
+	status: number;
 	category_name: string;
 }
 
@@ -14,6 +15,8 @@ export const Item: React.FC<{ item: Item }> = ({ item }) => {
 	const navigate = useNavigate();
 	const [itemImage, setItemImage] = useState<string>("");
 	const [cookies] = useCookies(["token"]);
+
+	const item_status = ["None", "Initial", "OnSale", "SoldOut"];
 
 	async function getItemImage(itemId: number): Promise<Blob> {
 		return await fetcherBlob(`/items/${itemId}/image`, {
@@ -41,14 +44,16 @@ export const Item: React.FC<{ item: Item }> = ({ item }) => {
 			<img
 				src={itemImage}
 				alt={item.name}
-				height={160}
-				width={160}
+				height={150}
+				width={150}
 				onClick={() => navigate(`/item/${item.id}`)}
 			/>
 			<p>
 				<span>Category: {item.category_name}</span>
 				<br />
 				<span>Price: {item.price}</span>
+				<br />
+				<span>Status: {item_status[item.status]}</span>
 				<br />
 			</p>
 		</div>

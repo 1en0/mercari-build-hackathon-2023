@@ -107,6 +107,8 @@ body {
 	display : grid;
 	grid-template-columns : 1fr 1fr 1fr;
 	place-items: center;
+	grid-row-gap: 10px;
+  grid-column-gap: 30px;
 }
 
 .Listing {
@@ -115,8 +117,8 @@ body {
 }
 
 .ItemSearch{
-  width: 80%;
 	color: #F5F5F5;
+	justify-content: center;
 }
 
 .SearchForm{

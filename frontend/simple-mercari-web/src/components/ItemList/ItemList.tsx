@@ -5,6 +5,7 @@ interface Item {
   id: number;
   name: string;
   price: number;
+	status: number;
   category_name: string;
 }
 

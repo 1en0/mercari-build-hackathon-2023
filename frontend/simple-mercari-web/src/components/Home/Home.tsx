@@ -4,9 +4,7 @@ import { ItemList } from "../ItemList";
 import { SearchFiled } from "../Search";
 import { useCookies } from "react-cookie";
 import { MerComponent } from "../MerComponent";
-import { useEffect, useState, useCallback } from "react";
-import { toast } from "react-toastify";
-import { fetcher } from "../../helper";
+import { useState, useCallback } from "react";
 import "react-toastify/dist/ReactToastify.css";
 
 
@@ -14,6 +12,7 @@ interface Item {
 	id: number;
 	name: string;
 	price: number;
+	status: number;
 	category_name: string;
 }
 
@@ -21,23 +20,6 @@ export const Home = () => {
 	const [cookies] = useCookies(["userID", "token"]);
 	const [items, setItems] = useState<Item[]>([]);
 
-	const fetchItems = () => {
-		fetcher<Item[]>(`/items`, {
-			method: "GET",
-			headers: {
-				"Content-Type": "application/json",
-				Accept: "application/json",
-			},
-		})
-			.then((data) => {
-				console.log("GET success:", data);
-				setItems(data);
-			})
-			.catch((err) => {
-				console.log(`GET error:`, err);
-				toast.error(err.message);
-			});
-	};
 
 
 	const onSearchItem = useCallback(
@@ -46,11 +28,6 @@ export const Home = () => {
 		},
 		[]
 	);
-
-
-	useEffect(() => {
-		fetchItems();
-	}, []);
 
 	const signUpAndSignInPage = (
 		<>
@@ -70,7 +47,7 @@ export const Home = () => {
 				<span>
 					<p>Logined User ID: {cookies.userID}</p>
 				</span>
-				<SearchFiled setItems={onSearchItem} />
+				<SearchFiled setItems={onSearchItem}/>
 				<ItemList items={items} />
 			</div>
 		</MerComponent>
