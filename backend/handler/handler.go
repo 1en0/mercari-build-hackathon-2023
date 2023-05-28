@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/patrickmn/go-cache"
 	"io"
+	"log"
 	"math"
 	"net/http"
 	"os"
@@ -372,6 +373,7 @@ func (h *Handler) GetItem(c echo.Context) error {
 	//search from cache
 	if cachedItem, found := CA.Get(fmt.Sprintf(itemKey, itemID)); found {
 		// cache hit
+		log.Println(fmt.Sprintf("cache hit: item %v", itemID))
 		return c.JSON(http.StatusOK, cachedItem)
 	}
 
@@ -638,6 +640,7 @@ func (h *Handler) GetImage(c echo.Context) error {
 	// search from cache
 	if cachedImage, found := CA.Get(fmt.Sprintf(imageKey, itemID)); found {
 		// cache hit
+		log.Println(fmt.Sprintf("cache hit: image %v", itemID))
 		return c.Blob(http.StatusOK, "image/jpeg", cachedImage.([]byte))
 	}
 
