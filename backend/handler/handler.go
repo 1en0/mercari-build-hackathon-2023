@@ -422,7 +422,6 @@ func (h *Handler) GetItemWithAuth(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-
 	// Get View Count
 	views, err := h.ItemRepo.GetViewCount(ctx, int32(itemID))
 	if err != nil {
