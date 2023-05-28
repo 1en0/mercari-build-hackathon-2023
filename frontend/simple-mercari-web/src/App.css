@@ -122,7 +122,76 @@ body {
 }
 
 .SearchForm{
-	background-color: #F5F5F5;
+	max-width: 600px;
+	justify-content: center;
+}
+
+.SearchGridFirst{
+	display : grid;
+	grid-template-columns : 10fr 10fr 4fr;
+	place-items: left;
+}
+
+.SearchGridSecond{
+	display : grid;
+	grid-template-columns : 8fr 2fr 10fr 4fr;
+	place-items: left;
+}
+
+.SearchCategorySpan {
+  grid-column-start: 1;
+  grid-row-start: 1;
+}
+
+.SearchKeywordSpan {
+  grid-column-start: 2;
+  grid-row-start: 1;
+}
+
+.SearchCheckboxSpan {
+  grid-column-start: 3;
+  grid-row-start: 1;
+}
+
+.SearchCategory {
+  grid-column-start: 1;
+  grid-row-start: 2;
+}
+
+.SearchKeyword {
+  grid-column-start: 2;
+  grid-row-start: 2;
+}
+
+.SearchCheckbox {
+  grid-column-start: 3;
+  grid-row-start: 2;
+}
+
+.SearchPriceSpan{
+  grid-column-start: 1;
+  grid-row-start: 1;
+}
+
+.SearchPriceMin{
+  grid-column-start: 1;
+  grid-row-start: 2;
+}
+
+.SearchPriceMid{
+  grid-column-start: 2;
+  grid-row-start: 2;
+	text-align: center;
+}
+
+.SearchPriceMax{
+  grid-column-start: 3;
+  grid-row-start: 2;
+}
+
+.SearchSubmit{
+  grid-column-start: 4;
+  grid-row-start: 2;
 }
 
 .ItemList {
