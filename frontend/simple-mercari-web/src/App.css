@@ -4,7 +4,8 @@ body {
 }
 
 .box {
-  width: 100%;
+	max-width: calc(min(81vw, 450px));
+	min-width: 27vw;
   max-height: 400px;
 	white-space: normal;
 	word-break: break-all;
@@ -16,8 +17,8 @@ body {
 }
 
 table {
-text-align: left;
-vertical-align: top;
+  text-align: left;
+  vertical-align: top;
 }
 
 h4 {
@@ -33,7 +34,6 @@ textarea {
 	max-width: calc(min(81vw, 450px));
 	min-width: 27vw;
 }
-
 
 .MerComponent {
   background-color: #222427;
@@ -147,6 +147,12 @@ textarea {
 .DetailImage {
 	max-width: calc(min(90vw, 500px));
 	min-width: 30vw;
+	height: auto;
+}
+
+.GridImage {
+	width: calc(min(25vw, 150px));
+	height: calc(min(25vw, 150px));
 }
 
 .Listing {

@@ -44,8 +44,7 @@ export const Item: React.FC<{ item: Item }> = ({ item }) => {
 			<img
 				src={itemImage}
 				alt={item.name}
-				height={150}
-				width={150}
+				className="GridImage"
 				onClick={() => navigate(`/item/${item.id}`)}
 			/>
 			<p>
