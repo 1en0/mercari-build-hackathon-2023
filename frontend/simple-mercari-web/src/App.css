@@ -1,6 +1,39 @@
 body {
   background-color: #222427;
+	padding-bottom: 60px;
 }
+
+.box {
+  width: 100%;
+  max-height: 400px;
+	white-space: normal;
+	word-break: break-all;
+  overflow-y: scroll;
+}
+
+.box::-webkit-scrollbar {
+  display:none;
+}
+
+table {
+text-align: left;
+vertical-align: top;
+}
+
+h4 {
+	color: gray;
+}
+
+textarea {
+	min-height:100px;
+	max-height:200px;
+	white-space: normal;
+	word-break: break-all;
+  overflow-y: scroll;
+	max-width: calc(min(81vw, 450px));
+	min-width: 27vw;
+}
+
 
 .MerComponent {
   background-color: #222427;
@@ -46,7 +79,7 @@ body {
   width: 100%;
   margin-top: 5px;
   margin-bottom: 5px;
-  overflow: hidden;
+  /*overflow: hidden;*/
   line-height: 1.4em;
   white-space: nowrap;
   text-align: center;
@@ -77,7 +110,7 @@ body {
   width: 100%;
   margin-top: 5px;
   margin-bottom: 5px;
-  overflow: hidden;
+  /*overflow: hidden;*/
   line-height: 1.4em;
   white-space: nowrap;
   text-align: center;
@@ -111,9 +144,15 @@ body {
   grid-column-gap: 30px;
 }
 
+.DetailImage {
+	max-width: calc(min(90vw, 500px));
+	min-width: 30vw;
+}
+
 .Listing {
-  width: 100%;
   color: white;
+	max-width: calc(min(90vw, 500px));
+	min-width: 30vw;
 }
 
 .ItemSearch{
@@ -206,18 +245,27 @@ body {
 }
 
 .ListingForm {
-  width: 100%;
+	margin:1em;
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+  justify-content: left;
+	gap: 5px;
+}
+
+.ItemDetail {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: left;
+	max-width: calc(min(90vw, 500px));
+	min-width: 30vw;
 }
 
-.ItemDetail {
-  width: 100%;
+.ItemDetailBlock {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: left;
   justify-content: left;
 }
 

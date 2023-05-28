@@ -99,6 +99,13 @@ export const Edit = () => {
 		});
 	};
 
+	const onTextAreaValueChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+		setValues({
+			...values,
+			[event.target.name]: event.target.value,
+		});
+	};
+
 	const onSelectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
 		setValues({
 			...values,
@@ -166,11 +173,10 @@ export const Edit = () => {
 	return (
 		<MerComponent>
 			<div className="Listing">
-				<form onSubmit={onSubmit} className="ListingForm">
-					<div>
+				<form onSubmit={onSubmit}>
+					<div className="ListingForm">
 						<img
-							height={150}
-							width={150}
+							className="DetailImage"
 							src={file ? file : (itemImage ? URL.createObjectURL(itemImage) : undefined)}
 							alt="item"
 						/>
@@ -204,12 +210,11 @@ export const Edit = () => {
 							defaultValue={item?.price}
 							required
 						/>
-						<input
-							type="text"
+						<textarea
 							name="description"
 							id="MerTextInput"
 							placeholder="description"
-							onChange={onValueChange}
+							onChange={onTextAreaValueChange}
 							defaultValue={item?.description}
 							required
 						/>
