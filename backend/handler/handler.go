@@ -248,6 +248,14 @@ func (h *Handler) AddItem(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
+	// max file size: 1MB
+	maxFileSize := int64(1024 * 1024) // 10MB
+
+	// check file size
+	if file.Size > maxFileSize {
+		return echo.NewHTTPError(http.StatusBadRequest, "File size exceeds 1MB.")
+	}
+
 	src, err := file.Open()
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -256,8 +264,7 @@ func (h *Handler) AddItem(c echo.Context) error {
 
 	var dest []byte
 	blob := bytes.NewBuffer(dest)
-	// TODO: pass very big file
-	// http.StatusBadRequest(400)
+
 	if _, err := io.Copy(blob, src); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -421,7 +428,6 @@ func (h *Handler) GetItemWithAuth(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-
 
 	// Get View Count
 	views, err := h.ItemRepo.GetViewCount(ctx, int32(itemID))
@@ -839,6 +845,14 @@ func (h *Handler) EditItem(c echo.Context) error {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 	} else {
+		// max file size: 1MB
+		maxFileSize := int64(1024 * 1024) // 10MB
+
+		// check file size
+		if file.Size > maxFileSize {
+			return echo.NewHTTPError(http.StatusBadRequest, "File size exceeds 1MB.")
+		}
+
 		src, err := file.Open()
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -847,8 +861,7 @@ func (h *Handler) EditItem(c echo.Context) error {
 
 		var dest []byte
 		blob := bytes.NewBuffer(dest)
-		// TODO: pass very big file
-		// http.StatusBadRequest(400)
+
 		if _, err := io.Copy(blob, src); err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
