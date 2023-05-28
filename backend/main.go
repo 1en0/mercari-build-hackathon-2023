@@ -15,6 +15,7 @@ import (
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/patrickmn/go-cache"
 )
 
 const (
@@ -23,6 +24,7 @@ const (
 )
 
 func main() {
+	handler.CA = cache.New(5*time.Minute, 10*time.Minute)
 	os.Exit(run(context.Background()))
 }
 

@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"github.com/patrickmn/go-cache"
 	"io"
+	"log"
 	"math"
 	"net/http"
 	"os"
@@ -20,7 +22,10 @@ import (
 )
 
 var (
-	logFile = getEnv("LOGFILE", "access.log")
+	logFile  = getEnv("LOGFILE", "access.log")
+	CA       *cache.Cache
+	itemKey  = "Item{%v}"
+	imageKey = "Image{%v}"
 )
 
 type JwtCustomClaims struct {
@@ -269,8 +274,7 @@ func (h *Handler) AddItem(c echo.Context) error {
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-
-	itemID, err := h.ItemRepo.AddItem(c.Request().Context(), domain.Item{
+	newItem := domain.Item{
 		Name:        req.Name,
 		CategoryID:  req.CategoryID,
 		UserID:      userID,
@@ -278,10 +282,14 @@ func (h *Handler) AddItem(c echo.Context) error {
 		Description: req.Description,
 		Image:       blob.Bytes(),
 		Status:      domain.ItemStatusInitial,
-	})
+	}
+	itemID, err := h.ItemRepo.AddItem(c.Request().Context(), newItem)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
+
+	// store in cache
+	CA.Set(fmt.Sprintf(imageKey, itemID), newItem.Image, cache.DefaultExpiration)
 
 	return c.JSON(http.StatusOK, addItemResponse{ID: int64(itemID)})
 }
@@ -362,6 +370,13 @@ func (h *Handler) GetItem(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "ItemID out of range")
 	}
 
+	//search from cache
+	if cachedItem, found := CA.Get(fmt.Sprintf(itemKey, itemID)); found {
+		// cache hit
+		log.Println(fmt.Sprintf("cache hit: item %v", itemID))
+		return c.JSON(http.StatusOK, cachedItem)
+	}
+
 	item, err := h.ItemRepo.GetItem(ctx, int32(itemID))
 
 	if err != nil {
@@ -383,7 +398,7 @@ func (h *Handler) GetItem(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}*/
 
-	return c.JSON(http.StatusOK, getItemResponse{
+	itemResponse := getItemResponse{
 		ID:           item.ID,
 		Name:         item.Name,
 		CategoryID:   item.CategoryID,
@@ -392,7 +407,12 @@ func (h *Handler) GetItem(c echo.Context) error {
 		Price:        item.Price,
 		Description:  item.Description,
 		Status:       item.Status,
-	})
+	}
+
+	// save to cache
+	CA.Set(fmt.Sprintf(itemKey, itemID), itemResponse, cache.DefaultExpiration)
+
+	return c.JSON(http.StatusOK, itemResponse)
 }
 
 func (h *Handler) GetItemWithAuth(c echo.Context) error {
@@ -421,7 +441,6 @@ func (h *Handler) GetItemWithAuth(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-
 
 	// Get View Count
 	views, err := h.ItemRepo.GetViewCount(ctx, int32(itemID))
@@ -618,11 +637,21 @@ func (h *Handler) GetImage(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "ItemID out of range")
 	}
 
+	// search from cache
+	if cachedImage, found := CA.Get(fmt.Sprintf(imageKey, itemID)); found {
+		// cache hit
+		log.Println(fmt.Sprintf("cache hit: image %v", itemID))
+		return c.Blob(http.StatusOK, "image/jpeg", cachedImage.([]byte))
+	}
+
 	// オーバーフローしていると。ここのint32(itemID)がバグって正常に処理ができないはず
 	data, err := h.ItemRepo.GetItemImage(ctx, int32(itemID))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
+
+	// save into cache
+	CA.Set(fmt.Sprintf(imageKey, itemID), data, cache.DefaultExpiration)
 
 	return c.Blob(http.StatusOK, "image/jpeg", data)
 }
@@ -745,6 +774,9 @@ func (h *Handler) Purchase(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
+	// status changed, delete from cache
+	CA.Delete(fmt.Sprintf(itemKey, itemID))
+
 	if err := h.UserRepo.UpdateBalanceTx(tx, ctx, userID, user.Balance-item.Price); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -853,9 +885,15 @@ func (h *Handler) EditItem(c echo.Context) error {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 		newItem.Image = blob.Bytes()
+
+		// update image cache
+		CA.Set(fmt.Sprintf(imageKey, itemID), newItem.Image, cache.DefaultExpiration)
 	}
 
 	_, err = h.ItemRepo.EditItem(c.Request().Context(), newItem)
+
+	// status changed, delete from cache
+	CA.Delete(fmt.Sprintf(itemKey, itemID))
 
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
