@@ -22,6 +22,7 @@ interface Item {
   price: number;
   status: ItemStatus;
   description: string;
+	views : number;
 }
 
 export const ItemDetail = () => {
@@ -32,11 +33,12 @@ export const ItemDetail = () => {
   const [cookies] = useCookies(["token", "userID"]);
 
   const fetchItem = () => {
-    fetcher<Item>(`/items/${params.id}`, {
+    fetcher<Item>(`/items-auth/${params.id}`, {
       method: "GET",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
+        Authorization: `Bearer ${cookies.token}`,
       },
     })
       .then((res) => {
@@ -110,8 +112,10 @@ export const ItemDetail = () => {
               <span>Category: {item.category_name}</span>
               <br />
               <span>Description: {item.description}</span>
+              <br />
+              <span>Views: {item.views}</span>
             </p>
-            {item.status == ItemStatus.ItemStatusSoldOut ? (
+            {item.status === ItemStatus.ItemStatusSoldOut ? (
               <button disabled={true} onClick={onSubmit} id="MerDisableButton">
                 SoldOut
               </button>
