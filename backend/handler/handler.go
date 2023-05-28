@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"image/jpeg"
 	"io"
 	"math"
 	"net/http"
@@ -254,13 +255,26 @@ func (h *Handler) AddItem(c echo.Context) error {
 	}
 	defer src.Close()
 
-	var dest []byte
-	blob := bytes.NewBuffer(dest)
-	// TODO: pass very big file
-	// http.StatusBadRequest(400)
-	if _, err := io.Copy(blob, src); err != nil {
+	// decode into image
+	img, err := jpeg.Decode(src)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Input is not an image.")
+	}
+
+	buffer := new(bytes.Buffer)
+
+	// encode image into byte[]
+	err = jpeg.Encode(buffer, img, nil)
+	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
+	//var dest []byte
+	//blob := bytes.NewBuffer(dest)
+	//// TODO: pass very big file
+	//// http.StatusBadRequest(400)
+	//if _, err := io.Copy(blob, src); err != nil {
+	//	return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	//}
 
 	_, err = h.ItemRepo.GetCategory(ctx, req.CategoryID)
 	if err != nil {
@@ -276,8 +290,9 @@ func (h *Handler) AddItem(c echo.Context) error {
 		UserID:      userID,
 		Price:       req.Price,
 		Description: req.Description,
-		Image:       blob.Bytes(),
-		Status:      domain.ItemStatusInitial,
+		//Image:       blob.Bytes(),
+		Image:  buffer.Bytes(),
+		Status: domain.ItemStatusInitial,
 	})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -421,7 +436,6 @@ func (h *Handler) GetItemWithAuth(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-
 
 	// Get View Count
 	views, err := h.ItemRepo.GetViewCount(ctx, int32(itemID))
