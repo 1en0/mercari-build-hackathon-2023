@@ -9,6 +9,7 @@ import "./App.css";
 import { Header } from "./components/Header/Header";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { PurchaseHistory } from "./components/PurchaseHisotry/PurchaseHistory";
 
 export const App: React.VFC = () => {
   return (
@@ -23,6 +24,7 @@ export const App: React.VFC = () => {
             <Route path="/item/:id" element={<ItemDetail />} />
             <Route path="/item/:id/edit" element={<Edit />} />
             <Route path="/user/:id" element={<UserProfile />} />
+            <Route path="/user/:id/purchase" element={<PurchaseHistory />} />
             <Route path="/sell" element={<Listing />} />
           </Routes>
         </div>
