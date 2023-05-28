@@ -2,6 +2,7 @@ import React from "react";
 import { Routes, Route, BrowserRouter } from "react-router-dom";
 import { Home } from "./components/Home";
 import { ItemDetail } from "./components/ItemDetail";
+import { Edit } from "./components/Edit";
 import { UserProfile } from "./components/UserProfile";
 import { Listing } from "./components/Listing";
 import "./App.css";
@@ -20,6 +21,7 @@ export const App: React.VFC = () => {
           <Routes>
             <Route index element={<Home />} />
             <Route path="/item/:id" element={<ItemDetail />} />
+            <Route path="/item/:id/edit" element={<Edit />} />
             <Route path="/user/:id" element={<UserProfile />} />
             <Route path="/sell" element={<Listing />} />
           </Routes>
