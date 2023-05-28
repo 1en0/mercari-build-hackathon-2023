@@ -39,3 +39,7 @@ CREATE TABLE IF NOT EXISTS history
 		item_id integer,
 		accesss_at  text NOT NULL DEFAULT (DATETIME('now', 'localtime'))
 );
+
+CREATE index IF NOT EXISTS seller_id_index ON items(seller_id);
+
+CREATE index IF NOT EXISTS status_index ON items(status);

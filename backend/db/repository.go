@@ -95,17 +95,17 @@ func (r *ItemDBRepository) AddItem(ctx context.Context, item domain.Item) (int32
 }
 
 func (r *ItemDBRepository) GetItem(ctx context.Context, id int32) (domain.Item, error) {
-	row := r.QueryRowContext(ctx, "SELECT * FROM items WHERE id = ?", id)
+	row := r.QueryRowContext(ctx, "SELECT id, name, price, description, category_id, seller_id, status FROM items WHERE id = ?", id)
 
 	var item domain.Item
-	return item, row.Scan(&item.ID, &item.Name, &item.Price, &item.Description, &item.CategoryID, &item.UserID, &item.Image, &item.Status, &item.CreatedAt, &item.UpdatedAt)
+	return item, row.Scan(&item.ID, &item.Name, &item.Price, &item.Description, &item.CategoryID, &item.UserID, &item.Status)
 }
 
 func (r *ItemDBRepository) GetItemTx(tx *sql.Tx, ctx context.Context, id int32) (domain.Item, error) {
-	row := tx.QueryRowContext(ctx, "SELECT * FROM items WHERE id = ?", id)
+	row := tx.QueryRowContext(ctx, "SELECT id, name, price, description, category_id, seller_id, status FROM items WHERE id = ?", id)
 
 	var item domain.Item
-	return item, row.Scan(&item.ID, &item.Name, &item.Price, &item.Description, &item.CategoryID, &item.UserID, &item.Image, &item.Status, &item.CreatedAt, &item.UpdatedAt)
+	return item, row.Scan(&item.ID, &item.Name, &item.Price, &item.Description, &item.CategoryID, &item.UserID, &item.Status)
 
 }
 
@@ -116,7 +116,7 @@ func (r *ItemDBRepository) GetItemImage(ctx context.Context, id int32) ([]byte, 
 }
 
 func (r *ItemDBRepository) GetOnSaleItems(ctx context.Context) ([]domain.Item, error) {
-	rows, err := r.QueryContext(ctx, "SELECT * FROM items WHERE status = ? ORDER BY updated_at desc", domain.ItemStatusOnSale)
+	rows, err := r.QueryContext(ctx, "SELECT items.id, items.name, price, description, category_id, seller_id, status, category.name FROM items JOIN category ON items.category_id = category.id WHERE status = ? ORDER BY items.updated_at desc", domain.ItemStatusOnSale)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func (r *ItemDBRepository) GetOnSaleItems(ctx context.Context) ([]domain.Item, e
 	var items []domain.Item
 	for rows.Next() {
 		var item domain.Item
-		if err := rows.Scan(&item.ID, &item.Name, &item.Price, &item.Description, &item.CategoryID, &item.UserID, &item.Image, &item.Status, &item.CreatedAt, &item.UpdatedAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.Name, &item.Price, &item.Description, &item.CategoryID, &item.UserID, &item.Status, &item.CategoryName); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -137,7 +137,7 @@ func (r *ItemDBRepository) GetOnSaleItems(ctx context.Context) ([]domain.Item, e
 }
 
 func (r *ItemDBRepository) GetItemsByUserID(ctx context.Context, userID int64) ([]domain.Item, error) {
-	rows, err := r.QueryContext(ctx, "SELECT * FROM items WHERE seller_id = ?", userID)
+	rows, err := r.QueryContext(ctx, "SELECT items.id, items.name, price, description, category_id, seller_id, status, category.name FROM items JOIN category ON items.category_id = category.id WHERE seller_id = ?", userID)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func (r *ItemDBRepository) GetItemsByUserID(ctx context.Context, userID int64) (
 	var items []domain.Item
 	for rows.Next() {
 		var item domain.Item
-		if err := rows.Scan(&item.ID, &item.Name, &item.Price, &item.Description, &item.CategoryID, &item.UserID, &item.Image, &item.Status, &item.CreatedAt, &item.UpdatedAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.Name, &item.Price, &item.Description, &item.CategoryID, &item.UserID, &item.Status, &item.CategoryName); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -158,7 +158,7 @@ func (r *ItemDBRepository) GetItemsByUserID(ctx context.Context, userID int64) (
 }
 
 func (r *ItemDBRepository) GetItemsByName(ctx context.Context, name string) ([]domain.Item, error) {
-	rows, err := r.QueryContext(ctx, "SELECT * FROM items WHERE name LIKE ?", "%"+name+"%")
+	rows, err := r.QueryContext(ctx, "SELECT id, name, price, description, category_id, seller_id, status FROM items WHERE name LIKE ?", "%"+name+"%")
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (r *ItemDBRepository) GetItemsByName(ctx context.Context, name string) ([]d
 	var items []domain.Item
 	for rows.Next() {
 		var item domain.Item
-		if err := rows.Scan(&item.ID, &item.Name, &item.Price, &item.Description, &item.CategoryID, &item.UserID, &item.Image, &item.Status, &item.CreatedAt, &item.UpdatedAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.Name, &item.Price, &item.Description, &item.CategoryID, &item.UserID, &item.Status); err != nil {
 			return nil, err
 		}
 		items = append(items, item)

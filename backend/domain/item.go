@@ -14,6 +14,7 @@ type Item struct {
 	Price       int64
 	Description string
 	CategoryID  int64
+	CategoryName  string
 	UserID      int64
 	Image       []byte
 	Status      ItemStatus

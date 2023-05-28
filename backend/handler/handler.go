@@ -344,15 +344,15 @@ func (h *Handler) GetOnSaleItems(c echo.Context) error {
 
 	var res []getOnSaleItemsResponse
 	for _, item := range items {
-		cats, err := h.ItemRepo.GetCategories(ctx)
+		//cats, err := h.ItemRepo.GetCategories(ctx)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err.Error())
 		}
-		for _, cat := range cats {
-			if cat.ID == item.CategoryID {
-				res = append(res, getOnSaleItemsResponse{ID: item.ID, Name: item.Name, Price: item.Price, CategoryName: cat.Name})
-			}
-		}
+		//for _, cat := range cats {
+		//	if cat.ID == item.CategoryID {
+		res = append(res, getOnSaleItemsResponse{ID: item.ID, Name: item.Name, Price: item.Price, CategoryName: item.CategoryName})
+		//	}
+		//}
 	}
 
 	return c.JSON(http.StatusOK, res)
@@ -485,15 +485,15 @@ func (h *Handler) SearchItemsByName(c echo.Context) error {
 
 	var res []searchItemsResponse
 	for _, item := range items {
-		cats, err := h.ItemRepo.GetCategories(ctx)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, err)
-		}
-		for _, cat := range cats {
-			if cat.ID == item.CategoryID {
-				res = append(res, searchItemsResponse{ID: item.ID, Name: item.Name, Price: item.Price, Status: int(item.Status), CategoryName: cat.Name})
-			}
-		}
+		//cats, err := h.ItemRepo.GetCategories(ctx)
+		//if err != nil {
+		//	return c.JSON(http.StatusInternalServerError, err)
+		//}
+		//for _, cat := range cats {
+		//	if cat.ID == item.CategoryID {
+				res = append(res, searchItemsResponse{ID: item.ID, Name: item.Name, Price: item.Price, Status: int(item.Status), CategoryName: item.CategoryName})
+		//	}
+		//}
 	}
 	return c.JSON(http.StatusOK, res)
 }
