@@ -264,7 +264,10 @@ func (h *Handler) AddItem(c echo.Context) error {
 	buffer := new(bytes.Buffer)
 
 	// encode image into byte[]
-	err = jpeg.Encode(buffer, img, nil)
+	options := &jpeg.Options{
+		Quality: 50,
+	}
+	err = jpeg.Encode(buffer, img, options)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
