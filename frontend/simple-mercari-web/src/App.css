@@ -103,8 +103,26 @@ body {
   color: white;
 }
 
+.Grid {
+	display : grid;
+	grid-template-columns : 1fr 1fr 1fr;
+	place-items: center;
+	grid-row-gap: 10px;
+  grid-column-gap: 30px;
+}
+
 .Listing {
   width: 100%;
+  color: white;
+}
+
+.ItemSearch{
+	color: #F5F5F5;
+	justify-content: center;
+}
+
+.SearchForm{
+	background-color: #F5F5F5;
 }
 
 .ItemList {
