@@ -623,7 +623,10 @@ func (h *Handler) GetImage(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	return c.Blob(http.StatusOK, "image/jpeg", data)
+	contentType := http.DetectContentType(data)
+
+	return c.Blob(http.StatusOK, contentType, data)
+	//return c.Blob(http.StatusOK, "image/jpeg", data)
 }
 
 func (h *Handler) AddBalance(c echo.Context) error {
