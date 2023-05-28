@@ -119,11 +119,20 @@ export const ItemDetail = () => {
               <button disabled={true} onClick={onSubmit} id="MerDisableButton">
                 SoldOut
               </button>
-            ) : (
+            ) :
+             item.user_id !== parseInt(cookies.userID) ? (
               <button onClick={onSubmit} id="MerButton">
                 Purchase
               </button>
-            )}
+            ) :
+						(
+              <button
+								onClick={() => navigate(`/item/${item.id}/edit`)}
+								id="MerButton">
+                Edit
+              </button>
+						)
+						}
           </div>
         )}
       </MerComponent>
