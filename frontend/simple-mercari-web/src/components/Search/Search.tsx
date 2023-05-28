@@ -2,17 +2,6 @@ import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { fetcher } from "../../helper";
 
-import {
-	Grid,
-	Select,
-	MenuItem,
-	TextField,
-	IconButton,
-	Checkbox,
-} from "@mui/material";
-
-import { Search } from '@mui/icons-material';
-
 interface Item {
 	id: number;
 	name: string;
@@ -104,85 +93,79 @@ export const SearchFiled: React.FC<Prop> = (props) => {
 	}, []);
 
 	return (
-		<Grid className="ItemSearch">
-			<Grid container spacing={2}>
-				<Grid item width="35%">
+		<div>
+			<div>
+				<div>
 					<span>
 						<p>Category</p>
 					</span>
-					<Select
+					<select
 						name="category_id"
 						id="MerTextInput"
-						sx={{ display: "flex" }}
 						className="SearchForm"
-						label="category"
-						size="small"
 						defaultValue={-1}
 						onChange={e => setSearch({ ...search, category: e.target.value })}
 					>
-						<MenuItem value={-1}>All</MenuItem>
+						<option value={-1}>All</option>
 						{categories &&
 							categories.map((category) => {
-								return <MenuItem value={category.id}>{category.name}</MenuItem>;
+								return <option value={category.id}>{category.name}</option>;
 							})}
-					</Select>
-				</Grid>
-				<Grid item width="35%">
+					</select>
+				</div>
+				<div>
 					<span>
 						<p>Keyword</p>
 					</span>
-					<TextField
+					<input
 						className="SearchForm"
 						defaultValue=""
-						size="small"
+						type="text"
 						onChange={e => setSearch({ ...search, keyword: e.target.value })}
-					>検索</TextField>
-				</Grid>
-				<Grid item width="25%">
+					/>
+				</div>
+				<div>
 					<span>
 						<p>Including Soldout</p>
 					</span>
-					<Checkbox
+					<input
+						type="checkbox"
 						className="SearchForm"
 						color="primary"
 						style={{backgroundColor: 'whitesmoke'}}
 						onChange={() => setSearch({ ...search, is_include_soldout: !search.is_include_soldout })}
 					/>
-				</Grid>
-			</Grid>
+				</div>
+			</div>
 				<span>
 					<p>Price</p>
 				</span>
-			<Grid container spacing={2}>
-				<Grid item width="35%">
-					<TextField
+			<div>
+				<div>
+					<input
 						className="SearchForm"
 						defaultValue={1}
-						size="small"
-						fullWidth={false}
 						type="number"
 						onChange={e => setSearch({ ...search, price_min: parseInt(e.target.value) })}
-					>min</TextField>
-				</Grid>
-				<Grid item width="5%">
+					/>
+				</div>
+				<div>
 					<div>-</div>
-				</Grid>
-				<Grid item width="35%">
-					<TextField
+				</div>
+				<div>
+					<input
 						className="SearchForm"
 						defaultValue={99999999}
-						size="small"
-						fullWidth={false}
 						type="number"
 						onChange={e => setSearch({ ...search, price_max: parseInt(e.target.value) })}
-					>max</TextField>
-				</Grid>
-				<Grid item>
-					<IconButton color="primary" size="large" onClick={handleSubmit}>
-						<Search/>
-					</IconButton>
-				</Grid>
-			</Grid>
-		</Grid>
+					/>
+				</div>
+				<div>
+					<button color="primary" onClick={handleSubmit}>
+							submit			
+					</button>
+				</div>
+			</div>
+		</div>
 	)
 };
