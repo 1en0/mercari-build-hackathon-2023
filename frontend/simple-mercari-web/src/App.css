@@ -142,6 +142,7 @@ textarea {
 	place-items: center;
 	grid-row-gap: 10px;
   grid-column-gap: 30px;
+	max-width: 90vw;
 }
 
 .DetailImage {
@@ -167,8 +168,7 @@ textarea {
 }
 
 .SearchForm{
-	max-width: 600px;
-	justify-content: center;
+	max-width: calc(min(90vw, 600px));
 }
 
 .SearchGridFirst{
