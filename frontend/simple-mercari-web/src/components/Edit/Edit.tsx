@@ -40,6 +40,7 @@ interface Category {
 
 export const Edit = () => {
 	const params = useParams();
+	const navigate = useNavigate();
 
 	const initialState = {
 		id: params.id ? parseInt(params.id) : 0,
@@ -134,6 +135,7 @@ export const Edit = () => {
 		})
 			.then(() => {
 				toast.success("Item edited successfully!");
+				navigate(`/item/${params.id}`)
 			})
 			.catch((error: Error) => {
 				toast.error(error.message);
@@ -216,7 +218,6 @@ export const Edit = () => {
 							name="image"
 							id="MerTextInput"
 							onChange={onFileChange}
-							required
 						/>
 						<button type="submit" id="MerButton">
 							Submit
