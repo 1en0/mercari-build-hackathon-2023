@@ -173,7 +173,7 @@ func (h *Handler) Register(c echo.Context) error {
 	if len(req.Name) == 0 || len(req.Password) == 0 {
 		return echo.NewHTTPError(http.StatusBadRequest, "Username and password cannot be empty.")
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), 4)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -202,6 +202,7 @@ func (h *Handler) Login(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "User Does Not Exist.")
 	}
 
+	
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
 		if err == bcrypt.ErrMismatchedHashAndPassword {
 			return echo.NewHTTPError(http.StatusUnauthorized, "Wrong UserId Or Password.")
@@ -248,6 +249,7 @@ func (h *Handler) AddItem(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
+	
 	file, err := c.FormFile("image")
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
