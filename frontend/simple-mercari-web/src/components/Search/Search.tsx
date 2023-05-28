@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { fetcher } from "../../helper";
+import { useNavigate } from "react-router-dom";
 
 interface Item {
 	id: number;
@@ -28,8 +29,11 @@ interface Prop {
 }
 
 export const SearchFiled: React.FC<Prop> = (props) => {
+
+	const data = window.localStorage.getItem('searchkeys');
+	const [search, setSearch] = useState<SearchKey>(data === null ? { category: -1, keyword: "", price_min: 1, price_max: 9999999, is_include_soldout: false } : JSON.parse(data));
+
 	const [categories, setCategories] = useState<Category[]>([]);
-	const [search, setSearch] = useState<SearchKey>({ category: -1, keyword: "", price_min: 1, price_max: 9999999, is_include_soldout: false });
 
 	const fetchCategories = () => {
 		fetcher<Category[]>(`/items/categories`, {
@@ -92,6 +96,10 @@ export const SearchFiled: React.FC<Prop> = (props) => {
 		fetchItems();
 	}, []);
 
+	useEffect(() => {
+		window.localStorage.setItem('searchkeys', JSON.stringify(search));
+	}, [search]);
+
 	return (
 		<div className="SearchForm">
 			<div className="SearchGridFirst">
@@ -104,7 +112,7 @@ export const SearchFiled: React.FC<Prop> = (props) => {
 					<select
 						name="category_id"
 						id="MerTextInput"
-						defaultValue={-1}
+						defaultValue={search.category}
 						style={{ "width": "200px" }}
 						onChange={e => setSearch({ ...search, category: e.target.value })}
 					>
@@ -122,8 +130,8 @@ export const SearchFiled: React.FC<Prop> = (props) => {
 				</div>
 				<div className="SearchKeyword">
 					<input
-						defaultValue=""
 						type="text"
+						defaultValue={search.keyword}
 						onChange={e => setSearch({ ...search, keyword: e.target.value })}
 					/>
 				</div>
@@ -136,6 +144,7 @@ export const SearchFiled: React.FC<Prop> = (props) => {
 					<input
 						type="checkbox"
 						color="primary"
+						checked={search.is_include_soldout}
 						style={{ backgroundColor: 'whitesmoke' }}
 						onChange={() => setSearch({ ...search, is_include_soldout: !search.is_include_soldout })}
 					/>
@@ -149,7 +158,7 @@ export const SearchFiled: React.FC<Prop> = (props) => {
 				</div>
 				<div className="SearchPriceMin">
 					<input
-						defaultValue={1}
+						defaultValue={search.price_min}
 						type="number"
 						onChange={e => setSearch({ ...search, price_min: parseInt(e.target.value) })}
 					/>
@@ -159,7 +168,7 @@ export const SearchFiled: React.FC<Prop> = (props) => {
 				</div>
 				<div className="SearchPriceMax">
 					<input
-						defaultValue={99999999}
+						defaultValue={search.price_max}
 						type="number"
 						onChange={e => setSearch({ ...search, price_max: parseInt(e.target.value) })}
 					/>
