@@ -31,3 +31,11 @@ CREATE TABLE IF NOT EXISTS status
     id   integer primary key,
     name varchar(50)
 );
+
+CREATE TABLE IF NOT EXISTS history
+(
+    id integer primary key autoincrement,
+		user_id integer,
+		item_id integer,
+		accesss_at  text NOT NULL DEFAULT (DATETIME('now', 'localtime'))
+);

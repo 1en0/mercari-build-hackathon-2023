@@ -74,6 +74,8 @@ type ItemRepository interface {
 	GetCategories(ctx context.Context) ([]domain.Category, error)
 	UpdateItemStatus(ctx context.Context, id int32, status domain.ItemStatus) error
 	UpdateItemStatusTx(tx *sql.Tx, ctx context.Context, id int32, status domain.ItemStatus) error
+	AddHistory(ctx context.Context, userID int64, itemID int32) error
+	GetViewCount(ctx context.Context, itemID int32) (int64, error)
 	EditItem(ctx context.Context, item domain.Item) (int32, error)
 }
 
@@ -304,6 +306,23 @@ func (r *ItemDBRepository) GetCategories(ctx context.Context) ([]domain.Category
 		return nil, err
 	}
 	return cats, nil
+}
+
+func (r *ItemDBRepository) AddHistory(ctx context.Context, userID int64, itemID int32) error {
+	if userID == -1 {
+		_, err := r.ExecContext(ctx, "INSERT INTO history (item_id) VALUES (?)", itemID)
+		return err
+  } else {
+		_, err := r.ExecContext(ctx, "INSERT INTO history (user_id, item_id) VALUES (?, ?)", userID, itemID)
+		return err
+	}
+}
+
+func (r *ItemDBRepository) GetViewCount(ctx context.Context, itemID int32) (int64, error) {
+	row := r.QueryRowContext(ctx, "SELECT COUNT(DISTINCT user_id) + COUNT(CASE WHEN user_id IS NULL THEN 1 END) from history WHERE item_id = ? AND (user_id IS NULL OR user_id != (SELECT seller_id FROM items WHERE items.id = history.item_id))", itemID)
+
+	var count int64
+	return count, row.Scan(&count)
 }
 
 func (r *ItemDBRepository) EditItem(ctx context.Context, item domain.Item) (int32, error) {

@@ -74,6 +74,7 @@ type getItemResponse struct {
 	Price        int64             `json:"price"`
 	Description  string            `json:"description"`
 	Status       domain.ItemStatus `json:"status"`
+	Views        int64             `json:"views"`
 }
 
 type getCategoriesResponse struct {
@@ -356,6 +357,10 @@ func (h *Handler) GetItem(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
+	// check whether itemID is within the range of int32
+	if itemID > math.MaxInt32 || itemID < math.MinInt32 {
+		return echo.NewHTTPError(http.StatusBadRequest, "ItemID out of range")
+	}
 
 	item, err := h.ItemRepo.GetItem(ctx, int32(itemID))
 
@@ -371,6 +376,13 @@ func (h *Handler) GetItem(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
+
+	// Add history (Omitted for benchmarking)
+	/* err = h.ItemRepo.AddHistory(ctx, int64(-1), item.ID) // not login
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}*/
+
 	return c.JSON(http.StatusOK, getItemResponse{
 		ID:           item.ID,
 		Name:         item.Name,
@@ -380,6 +392,60 @@ func (h *Handler) GetItem(c echo.Context) error {
 		Price:        item.Price,
 		Description:  item.Description,
 		Status:       item.Status,
+	})
+}
+
+func (h *Handler) GetItemWithAuth(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	itemID, err := strconv.Atoi(c.Param("itemID"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	// check whether itemID is within the range of int32
+	if itemID > math.MaxInt32 || itemID < math.MinInt32 {
+		return echo.NewHTTPError(http.StatusBadRequest, "ItemID out of range")
+	}
+
+	item, err := h.ItemRepo.GetItem(ctx, int32(itemID))
+
+	if err != nil {
+		// not found handling
+		if err == sql.ErrNoRows {
+			return echo.NewHTTPError(http.StatusNotFound, err.Error())
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	category, err := h.ItemRepo.GetCategory(ctx, item.CategoryID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+
+	// Get View Count
+	views, err := h.ItemRepo.GetViewCount(ctx, int32(itemID))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	// Add history
+	userID, _ := getUserID(c)
+	err = h.ItemRepo.AddHistory(ctx, userID, item.ID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, getItemResponse{
+		ID:           item.ID,
+		Name:         item.Name,
+		CategoryID:   item.CategoryID,
+		CategoryName: category.Name,
+		UserID:       item.UserID,
+		Price:        item.Price,
+		Description:  item.Description,
+		Status:       item.Status,
+		Views:        views,
 	})
 }
 
