@@ -105,7 +105,7 @@ export const SearchFiled: React.FC<Prop> = (props) => {
 						name="category_id"
 						id="MerTextInput"
 						defaultValue={-1}
-						style={{"width": "200px"}}
+						style={{ "width": "200px" }}
 						onChange={e => setSearch({ ...search, category: e.target.value })}
 					>
 						<option value={-1}>All</option>
@@ -166,7 +166,7 @@ export const SearchFiled: React.FC<Prop> = (props) => {
 				</div>
 				<div className="SearchSubmit">
 					<button color="primary" onClick={handleSubmit}>
-					Search
+						Search
 					</button>
 				</div>
 			</div>
