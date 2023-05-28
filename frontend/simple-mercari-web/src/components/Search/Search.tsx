@@ -93,17 +93,19 @@ export const SearchFiled: React.FC<Prop> = (props) => {
 	}, []);
 
 	return (
-		<div>
-			<div>
-				<div>
+		<div className="SearchForm">
+			<div className="SearchGridFirst">
+				<div className="SearchCategorySpan">
 					<span>
 						<p>Category</p>
 					</span>
+				</div>
+				<div className="SearchCategory">
 					<select
 						name="category_id"
 						id="MerTextInput"
-						className="SearchForm"
 						defaultValue={-1}
+						style={{"width": "200px"}}
 						onChange={e => setSearch({ ...search, category: e.target.value })}
 					>
 						<option value={-1}>All</option>
@@ -113,56 +115,58 @@ export const SearchFiled: React.FC<Prop> = (props) => {
 							})}
 					</select>
 				</div>
-				<div>
+				<div className="SearchKeywordSpan">
 					<span>
 						<p>Keyword</p>
 					</span>
+				</div>
+				<div className="SearchKeyword">
 					<input
-						className="SearchForm"
 						defaultValue=""
 						type="text"
 						onChange={e => setSearch({ ...search, keyword: e.target.value })}
 					/>
 				</div>
-				<div>
+				<div className="SearchCheckboxSpan">
 					<span>
 						<p>Including Soldout</p>
 					</span>
+				</div>
+				<div className="SearchCheckbox">
 					<input
 						type="checkbox"
-						className="SearchForm"
 						color="primary"
-						style={{backgroundColor: 'whitesmoke'}}
+						style={{ backgroundColor: 'whitesmoke' }}
 						onChange={() => setSearch({ ...search, is_include_soldout: !search.is_include_soldout })}
 					/>
 				</div>
 			</div>
-				<span>
-					<p>Price</p>
-				</span>
-			<div>
-				<div>
+			<div className="SearchGridSecond">
+				<div className="SearchPriceSpan">
+					<span>
+						<p>Price</p>
+					</span>
+				</div>
+				<div className="SearchPriceMin">
 					<input
-						className="SearchForm"
 						defaultValue={1}
 						type="number"
 						onChange={e => setSearch({ ...search, price_min: parseInt(e.target.value) })}
 					/>
 				</div>
-				<div>
-					<div>-</div>
+				<div className="SearchPriceMid">
+					<div>~</div>
 				</div>
-				<div>
+				<div className="SearchPriceMax">
 					<input
-						className="SearchForm"
 						defaultValue={99999999}
 						type="number"
 						onChange={e => setSearch({ ...search, price_max: parseInt(e.target.value) })}
 					/>
 				</div>
-				<div>
+				<div className="SearchSubmit">
 					<button color="primary" onClick={handleSubmit}>
-							submit			
+					Search
 					</button>
 				</div>
 			</div>
