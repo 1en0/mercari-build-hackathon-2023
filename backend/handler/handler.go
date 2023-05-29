@@ -106,6 +106,15 @@ type editItemRequest struct {
 	Description string `form:"description"`
 }
 
+type getPurchaseItemsResponse struct {
+	ID           int32             `json:"id"`
+	Name         string            `json:"name"`
+	Price        int64             `json:"price"`
+	CategoryName string            `json:"category_name"`
+	Status       domain.ItemStatus `json:"status"`
+}
+
+
 type addItemResponse struct {
 	ID int64 `json:"id"`
 }
@@ -137,6 +146,7 @@ type Handler struct {
 	DB       *sql.DB
 	UserRepo db.UserRepository
 	ItemRepo db.ItemRepository
+	PurchaseRepo db.PurchaseRepository
 }
 
 func GetSecret() string {
@@ -923,4 +933,133 @@ func getEnv(key string, defaultValue string) string {
 		return defaultValue
 	}
 	return value
+}
+
+func (h *Handler) GetPurchasedItems(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	userID, err := strconv.ParseInt(c.Param("userID"), 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "invalid userID type")
+	}
+
+	items, err := h.ItemRepo.GetItemsByBuyerID(ctx, userID)
+
+	if items == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "No items found for user "+strconv.FormatInt(userID, 10))
+	}
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	var res []getPurchaseItemsResponse
+	for _, item := range items {
+		cats, err := h.ItemRepo.GetCategories(ctx)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, err.Error())
+		}
+		for _, cat := range cats {
+			if cat.ID == item.CategoryID {
+				res = append(res, getPurchaseItemsResponse{ID: item.ID, Name: item.Name, Price: item.Price, Status: item.Status, CategoryName: cat.Name})
+			}
+		}
+	}
+
+	return c.JSON(http.StatusOK, res)
+}
+
+func (h *Handler) PurchaseV2(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	userID, err := getUserID(c)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
+	}
+
+	itemID, err := strconv.Atoi(c.Param("itemID"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	// check whether itemID is within the range of int32
+	if itemID > math.MaxInt32 || itemID < math.MinInt32 {
+		return echo.NewHTTPError(http.StatusBadRequest, "ItemID out of range")
+	}
+
+	// balance consistency
+	tx, err := h.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	defer tx.Rollback()
+
+	item, err := h.ItemRepo.GetItemTx(tx, ctx, int32(itemID))
+	if err != nil {
+		//not found handling
+		if err == sql.ErrNoRows {
+			return echo.NewHTTPError(http.StatusPreconditionFailed, err.Error())
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	// update only when item status is on sale
+	if item.Status != domain.ItemStatusOnSale {
+		return echo.NewHTTPError(http.StatusPreconditionFailed, "This item is not on sale.")
+	}
+
+	// not to buy own items
+	if item.UserID == userID {
+		return echo.NewHTTPError(http.StatusPreconditionFailed, "Cannot buy your own item.")
+	}
+
+	user, err := h.UserRepo.GetUserTx(tx, ctx, userID)
+	if err != nil {
+		//not found handling
+		if err == sql.ErrNoRows {
+			return echo.NewHTTPError(http.StatusPreconditionFailed, err.Error())
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	//check if item.price > user.balance
+	if item.Price > user.Balance {
+		return echo.NewHTTPError(http.StatusBadRequest, "Your balance is not enough.")
+	}
+
+	// オーバーフローしていると。ここのint32(itemID)がバグって正常に処理ができないはず
+	if err := h.ItemRepo.UpdateItemStatusTx(tx, ctx, int32(itemID), domain.ItemStatusSoldOut); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	if err := h.UserRepo.UpdateBalanceTx(tx, ctx, userID, user.Balance-item.Price); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	// Purchase Tableに追加
+	if err := h.PurchaseRepo.AddPurchaseTx(tx, ctx, item.ID, user.ID); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	sellerID := item.UserID
+
+	seller, err := h.UserRepo.GetUserTx(tx, ctx, sellerID)
+
+	if err != nil {
+		//not found handling
+		if err == sql.ErrNoRows {
+			return echo.NewHTTPError(http.StatusPreconditionFailed, err.Error())
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	if err := h.UserRepo.UpdateBalanceTx(tx, ctx, sellerID, seller.Balance+item.Price); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, "successful")
 }

@@ -77,6 +77,7 @@ type ItemRepository interface {
 	AddHistory(ctx context.Context, userID int64, itemID int32) error
 	GetViewCount(ctx context.Context, itemID int32) (int64, error)
 	EditItem(ctx context.Context, item domain.Item) (int32, error)
+	GetItemsByBuyerID(ctx context.Context, buyerID int64) ([]domain.Item, error)
 }
 
 type ItemDBRepository struct {
@@ -370,4 +371,44 @@ func (r *ItemDBRepository) EditItem(ctx context.Context, item domain.Item) (int3
 	//var res domain.Item
 	//return res, row.Scan(&res.ID, &res.Name, &res.Price, &res.Description, &res.CategoryID, &res.UserID, &res.Image, &res.Status, &res.CreatedAt, &res.UpdatedAt)
 	return item.ID, nil
+}
+
+func (r *ItemDBRepository) GetItemsByBuyerID(ctx context.Context, buyerID int64) ([]domain.Item, error) {
+	rows, err := r.QueryContext(ctx, "SELECT items.id, name, price, category_id, status FROM items JOIN purchase ON items.id = purchase.item_id WHERE purchase.buyer_id = ?", buyerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []domain.Item
+	for rows.Next() {
+		var item domain.Item
+		if err := rows.Scan(&item.ID, &item.Name, &item.Price, &item.CategoryID, &item.Status); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+type PurchaseRepository interface {
+	AddPurchaseTx(tx *sql.Tx, ctx context.Context, itemID int32, buyerID int64) error
+}
+
+type PurchaseDBRepository struct {
+	*sql.DB
+}
+
+func NewPurchaseRepository(db *sql.DB) PurchaseRepository {
+	return &PurchaseDBRepository{DB: db}
+}
+
+func (r *PurchaseDBRepository) AddPurchaseTx(tx *sql.Tx, ctx context.Context, itemID int32, buyerID int64) error {
+	if _, err := tx.ExecContext(ctx, "INSERT INTO purchase (item_id, buyer_id) VALUES (?, ?)", itemID, buyerID); err != nil {
+		return err
+	}
+	return nil
 }

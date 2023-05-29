@@ -93,7 +93,7 @@ export const SearchFiled: React.FC<Prop> = (props) => {
 
 	useEffect(() => {
 		fetchCategories();
-		fetchItems();
+		handleSubmit();
 	}, []);
 
 	useEffect(() => {

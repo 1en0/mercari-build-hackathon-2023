@@ -35,8 +35,14 @@ CREATE TABLE IF NOT EXISTS status
 CREATE TABLE IF NOT EXISTS history
 (
     id integer primary key autoincrement,
-		user_id integer,
-		item_id integer,
-		accesss_at  text NOT NULL DEFAULT (DATETIME('now', 'localtime'))
+    user_id integer,
+    item_id integer,
+    accesss_at  text NOT NULL DEFAULT (DATETIME('now', 'localtime'))
+);
+
+CREATE TABLE IF NOT EXISTS purchase
+(
+    item_id  integer primary key,
+    buyer_id integer
 );
 

@@ -75,6 +75,7 @@ func run(ctx context.Context) int {
 		DB:       sqlDB,
 		UserRepo: db.NewUserRepository(sqlDB),
 		ItemRepo: db.NewItemRepository(sqlDB),
+		PurchaseRepo: db.NewPurchaseRepository(sqlDB),
 	}
 
 	// Routes
@@ -94,10 +95,12 @@ func run(ctx context.Context) int {
 	l := e.Group("")
 	l.Use(echojwt.WithConfig(config))
 	l.GET("/users/:userID/items", h.GetUserItems)
+	l.GET("/users/:userID/purchase", h.GetPurchasedItems)
 	l.POST("/items", h.AddItem)
 	l.PUT("/items/:itemID", h.EditItem)
 	l.POST("/sell", h.Sell)
 	l.POST("/purchase/:itemID", h.Purchase)
+	l.POST("/purchase-v2/:itemID", h.PurchaseV2)
 	l.GET("/balance", h.GetBalance)
 	l.POST("/balance", h.AddBalance)
 	l.GET("/items-auth/:itemID", h.GetItemWithAuth) // Store history of userID

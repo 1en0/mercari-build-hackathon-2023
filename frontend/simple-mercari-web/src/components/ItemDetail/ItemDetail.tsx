@@ -67,8 +67,8 @@ export const ItemDetail = () => {
 			});
 	};
 
-	const onSubmit = (_: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-		fetcher<Item[]>(`/purchase/${params.id}`, {
+	const onSubmit = () => {
+		fetcher<Item[]>(`/purchase-v2/${params.id}`, {
 			method: "POST",
 			headers: {
 				Accept: "application/json",
@@ -85,6 +85,15 @@ export const ItemDetail = () => {
 				toast.error(err.message);
 			});
 	};
+
+	const Confirm = () => {
+    const confirmBox = window.confirm(
+      "Do you really want to buy this item?"
+    )
+    if (confirmBox === true) {
+			onSubmit()
+    }
+  };
 
 	useEffect(() => {
 		fetchItem();
@@ -136,7 +145,7 @@ export const ItemDetail = () => {
 							</button>
 						) :
 							item.user_id !== parseInt(cookies.userID) ? (
-								<button onClick={onSubmit} id="MerButton">
+								<button onClick={() => Confirm()} id="MerButton">
 									Purchase
 								</button>
 							) :

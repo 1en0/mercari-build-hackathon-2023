@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useCookies } from "react-cookie";
 import { useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { MerComponent } from "../MerComponent";
 import { toast } from "react-toastify";
 import { ItemList } from "../ItemList";
@@ -15,6 +16,7 @@ interface Item {
 }
 
 export const UserProfile: React.FC = () => {
+	const navigate = useNavigate();
   const [items, setItems] = useState<Item[]>([]);
   const [balance, setBalance] = useState<number>();
   const [addedbalance, setAddedBalance] = useState<number>();
@@ -104,6 +106,15 @@ export const UserProfile: React.FC = () => {
             </button>
           </form>
 
+          <div>
+            <h2>Purchase History</h2>
+            <button
+             id="MerButton"
+             onClick={() => navigate(`/user/${params.id}/purchase`)}
+            >
+             See Purchase History
+            </button>
+          </div>
           <div>
             <h2>Item List</h2>
             {<ItemList items={items} />}
