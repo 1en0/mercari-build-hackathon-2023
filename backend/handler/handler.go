@@ -264,7 +264,7 @@ func (h *Handler) AddItem(c echo.Context) error {
 
 	// encode image into byte[]
 	options := &jpeg.Options{
-		Quality: 50,
+		Quality: -1,
 	}
 	err = jpeg.Encode(buffer, img, options)
 	if err != nil {
@@ -867,7 +867,7 @@ func (h *Handler) EditItem(c echo.Context) error {
 
 		// encode image into byte[]
 		options := &jpeg.Options{
-			Quality: 50,
+			Quality: -1,
 		}
 		err = jpeg.Encode(buffer, img, options)
 		if err != nil {
