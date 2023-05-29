@@ -139,12 +139,12 @@ export const ItemDetail = () => {
 							<div className="box">
 								<p>{item.description}</p>
 							</div>
-						{item.status === ItemStatus.ItemStatusSoldOut ? (
+						{item.status == ItemStatus.ItemStatusSoldOut ? (
 							<button disabled={true} onClick={onSubmit} id="MerDisableButton">
 								SoldOut
 							</button>
 						) :
-							item.user_id !== parseInt(cookies.userID) ? (
+							item.user_id != parseInt(cookies.userID) ? (
 								<button onClick={() => Confirm()} id="MerButton">
 									Purchase
 								</button>
