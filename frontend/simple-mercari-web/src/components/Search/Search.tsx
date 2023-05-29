@@ -68,9 +68,9 @@ export const SearchFiled: React.FC<Prop> = (props) => {
 			});
 	};
 
-	const handleSubmit = () => {
+	const handleSubmit = (search : SearchKey) => {
 		var query = ""
-		if (search?.category !== -1)
+		if (search?.category != -1)
 			query = `/search-detail?category=${search?.category}&name=${search?.keyword}&price-min=${search?.price_min}&price-max=${search?.price_max}&is-include-soldout=${search.is_include_soldout}`
 		else
 			query = `/search-detail?name=${search?.keyword}&price-min=${search?.price_min}&price-max=${search?.price_max}&is-include-soldout=${search.is_include_soldout}`
@@ -92,8 +92,10 @@ export const SearchFiled: React.FC<Prop> = (props) => {
 	};
 
 	useEffect(() => {
+		const data = window.localStorage.getItem('searchkeys');
+		const search  = data === null ? { category: -1, keyword: "", price_min: 1, price_max: 9999999, is_include_soldout: false } : JSON.parse(data)
 		fetchCategories();
-		handleSubmit();
+		handleSubmit(search);
 	}, []);
 
 	useEffect(() => {
@@ -114,12 +116,12 @@ export const SearchFiled: React.FC<Prop> = (props) => {
 						id="MerTextInput"
 						defaultValue={search.category}
 						style={{ "width": "200px" }}
-						onChange={e => setSearch({ ...search, category: e.target.value })}
+						onChange={e => setSearch({ ...search, category: parseInt(e.target.value) })}
 					>
-						<option value={-1}>All</option>
+						<option value={-1} selected={search.category == -1}>All</option>
 						{categories &&
 							categories.map((category) => {
-								return <option value={category.id}>{category.name}</option>;
+								return <option value={category.id} selected={search.category == category.id}>{category.name}</option>;
 							})}
 					</select>
 				</div>
@@ -174,7 +176,7 @@ export const SearchFiled: React.FC<Prop> = (props) => {
 					/>
 				</div>
 				<div className="SearchSubmit">
-					<button color="primary" onClick={handleSubmit}>
+					<button color="primary" onClick={() => handleSubmit(search)}>
 						Search
 					</button>
 				</div>
