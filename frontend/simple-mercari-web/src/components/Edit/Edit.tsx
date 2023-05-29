@@ -69,6 +69,7 @@ export const Edit = () => {
 			.then((res) => {
 				console.log("GET success:", res);
 				setItem(res);
+				setValues({id: res.id, name: res.name, category_id: res.category_id, price: res.price, description : res.description, image: ""})
 			})
 			.catch((err) => {
 				console.log(`GET error:`, err);
@@ -192,13 +193,12 @@ export const Edit = () => {
 						<select
 							name="category_id"
 							id="MerTextInput"
-							value={values.category_id}
 							onChange={onSelectChange}
 							defaultValue={item?.category_id}
 						>
 							{categories &&
 								categories.map((category) => {
-									return <option value={category.id}>{category.name}</option>;
+									return <option value={category.id} selected={category.id == values.category_id}>{category.name}</option>;
 								})}
 						</select>
 						<input
