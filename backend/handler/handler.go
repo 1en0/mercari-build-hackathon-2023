@@ -630,6 +630,9 @@ func (h *Handler) GetImage(c echo.Context) error {
 	// オーバーフローしていると。ここのint32(itemID)がバグって正常に処理ができないはず
 	data, err := h.ItemRepo.GetItemImage(ctx, int32(itemID))
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return echo.NewHTTPError(http.StatusNotFound, fmt.Sprintf("Item not found: %v", itemID))
+		}
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
