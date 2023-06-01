@@ -47,8 +47,23 @@ func main() {
 
 	e.POST("/signup", signupHandler)
 	e.GET("/users/:user_id", getUserDetailsHandler)
+	e.PATCH("/users/:user_id", updateUserDetails)
 
 	e.Start(":9000")
+}
+
+func updateUserDetails(c echo.Context) error {
+	_ = c.Param("user_id")
+	authHeader := c.Request().Header.Get("Authorization")
+
+	// Extract and decode the credentials from the Authorization header
+	_, err := extractCredentials(authHeader)
+	if err != nil {
+		resp := UserDetailsResponse{
+			Message: "Authentication Failed",
+		}
+		return c.JSON(http.StatusUnauthorized, resp)
+	}
 }
 
 func initDb() error {
@@ -244,4 +259,42 @@ func extractCredentials(authHeader string) (Credentials, error) {
 type Credentials struct {
 	UserID   string
 	Password string
+}
+
+func deleteUserHandler(c echo.Context) error {
+	authHeader := c.Request().Header.Get("Authorization")
+
+	// Extract and decode the credentials from the Authorization header
+	credentials, err := extractCredentials(authHeader)
+	if err != nil {
+		resp := UserDetailsResponse{
+			Message: "Authentication Failed",
+		}
+		return c.JSON(http.StatusUnauthorized, resp)
+	}
+
+	// Check if the credentials are valid
+	var count int
+	err = db.QueryRow("SELECT COUNT(*) FROM test_users WHERE user_id = ? AND password = ?", credentials.UserID, credentials.Password).Scan(&count)
+	if err != nil || count == 0 {
+		resp := UserDetailsResponse{
+			Message: "Authentication Failed",
+		}
+		return c.JSON(http.StatusUnauthorized, resp)
+	}
+
+	// Delete the user from the database
+	_, err = db.Exec("DELETE FROM test_users WHERE user_id = ?", credentials.UserID)
+	if err != nil {
+		resp := UserDetailsResponse{
+			Message: "Authentication Failed",
+		}
+		return c.JSON(http.StatusInternalServerError, resp)
+	}
+
+	resp := UserDetailsResponse{
+		Message: "Account and user successfully removed",
+	}
+
+	return c.JSON(http.StatusOK, resp)
 }
