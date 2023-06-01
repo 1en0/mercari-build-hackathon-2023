@@ -64,6 +64,7 @@ func updateUserDetails(c echo.Context) error {
 		}
 		return c.JSON(http.StatusUnauthorized, resp)
 	}
+	return nil
 }
 
 func initDb() error {
