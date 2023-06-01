@@ -2,11 +2,14 @@ package main
 
 import (
 	"database/sql"
+	"encoding/base64"
+	"fmt"
 	"github.com/pkg/errors"
 	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	_ "github.com/mattn/go-sqlite3"
@@ -26,6 +29,13 @@ type SignupResponse struct {
 type User struct {
 	UserID   string `json:"user_id"`
 	Nickname string `json:"nickname"`
+	Comment  string `json:"comment,omitempty"`
+}
+
+type UserDetailsResponse struct {
+	Message string `json:"message"`
+	User    User   `json:"user,omitempty"`
+	Cause   string `json:"cause,omitempty"`
 }
 
 var db *sql.DB
@@ -36,8 +46,9 @@ func main() {
 	defer db.Close()
 
 	e.POST("/signup", signupHandler)
+	e.GET("/users/:user_id", getUserDetailsHandler)
 
-	e.Start(":8080")
+	e.Start(":9000")
 }
 
 func initDb() error {
@@ -147,4 +158,90 @@ func validatePassword(password string) error {
 	}
 
 	return nil
+}
+
+func getUserDetailsHandler(c echo.Context) error {
+	userID := c.Param("user_id")
+	authHeader := c.Request().Header.Get("Authorization")
+
+	// Extract and decode the credentials from the Authorization header
+	credentials, err := extractCredentials(authHeader)
+	if err != nil {
+		resp := UserDetailsResponse{
+			Message: "Authentication Failed",
+		}
+		return c.JSON(http.StatusUnauthorized, resp)
+	}
+
+	// Check if the credentials match the requested user_id
+	if credentials.UserID != userID {
+		resp := UserDetailsResponse{
+			Message: "Authentication Failed",
+		}
+		return c.JSON(http.StatusUnauthorized, resp)
+	}
+
+	// Open SQLite database connection
+	db, err := sql.Open("sqlite3", "./database.db")
+	if err != nil {
+		resp := UserDetailsResponse{
+			Message: "No User found",
+		}
+		return c.JSON(http.StatusInternalServerError, resp)
+	}
+	defer db.Close()
+
+	// Query the user details from the database
+	var user User
+	err = db.QueryRow("SELECT user_id, nickname, comment FROM test_users WHERE user_id = ?", userID).Scan(&user.UserID, &user.Nickname, &user.Comment)
+	if err != nil {
+		resp := UserDetailsResponse{
+			Message: "No User found",
+		}
+		return c.JSON(http.StatusNotFound, resp)
+	}
+
+	resp := UserDetailsResponse{
+		Message: "User details by user_id",
+		User:    user,
+	}
+
+	return c.JSON(http.StatusOK, resp)
+}
+
+func extractCredentials(authHeader string) (Credentials, error) {
+	credentials := Credentials{}
+
+	// Check if the Authorization header is present
+	if authHeader == "" {
+		return credentials, fmt.Errorf("authorization header is missing")
+	}
+
+	// Extract the credentials from the Authorization header
+	auth := strings.SplitN(authHeader, " ", 2)
+	if len(auth) != 2 || auth[0] != "Basic" {
+		return credentials, fmt.Errorf("invalid Authorization header format")
+	}
+
+	// Decode the base64-encoded credentials
+	decodedCredentials, err := base64.StdEncoding.DecodeString(auth[1])
+	if err != nil {
+		return credentials, fmt.Errorf("failed to decode credentials")
+	}
+
+	// Extract the username and password from the decoded credentials
+	credentialsArray := strings.SplitN(string(decodedCredentials), ":", 2)
+	if len(credentialsArray) != 2 {
+		return credentials, fmt.Errorf("invalid credentials format")
+	}
+
+	credentials.UserID = credentialsArray[0]
+	credentials.Password = credentialsArray[1]
+
+	return credentials, nil
+}
+
+type Credentials struct {
+	UserID   string
+	Password string
 }
